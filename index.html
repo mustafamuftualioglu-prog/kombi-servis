@@ -33,7 +33,7 @@
 <div><label for="boilerBrand">Kombi markası</label><input id="boilerBrand" placeholder="Örn. Demirdöküm"></div>
 <div><label for="boilerModel">Kombi modeli</label><input id="boilerModel" placeholder="Örn. Nitromix"></div>
 <div><label for="errorCode">Arıza kodu</label><input id="errorCode" placeholder="Örn. F28"></div>
-<div><label for="serviceStatus">Servis durumu</label><select id="serviceStatus"><option value="pending">Bekliyor</option><option value="in_progress">İşlemde</option><option value="completed">Tamamlandı</option><option value="cancelled">İptal</option></select></div>
+<div><label for="serviceStatus">Servis durumu</label><select id="serviceStatus"><option value="Bekliyor">Bekliyor</option><option value="İşlemde">İşlemde</option><option value="Tamamlandı">Tamamlandı</option><option value="İptal">İptal</option></select></div>
 <div class="admin-only"><label for="technician">Atanacak teknisyen</label><select id="technician"><option value="">Teknisyen seç</option></select></div>
 </div>
 <label for="problem">Arıza açıklaması</label><textarea id="problem" placeholder="Müşterinin bildirdiği arıza..."></textarea>
@@ -44,7 +44,7 @@
 </section>
 <section class="card">
 <div class="section-title"><h2>Servis Kayıtları</h2><button type="button" id="refreshButton" class="secondary" style="width:auto">Listeyi Yenile</button></div>
-<div class="grid"><div><label for="filterStatus">Duruma göre filtrele</label><select id="filterStatus"><option value="">Tüm durumlar</option><option value="pending">Bekliyor</option><option value="in_progress">İşlemde</option><option value="completed">Tamamlandı</option><option value="cancelled">İptal</option></select></div><div><label for="searchService">Ara (müşteri, servis no, kombi)</label><input id="searchService" placeholder="Arama..."></div></div>
+<div class="grid"><div><label for="filterStatus">Duruma göre filtrele</label><select id="filterStatus"><option value="">Tüm durumlar</option><option value="Bekliyor">Bekliyor</option><option value="İşlemde">İşlemde</option><option value="Tamamlandı">Tamamlandı</option><option value="İptal">İptal</option></select></div><div><label for="searchService">Ara (müşteri, servis no, kombi)</label><input id="searchService" placeholder="Arama..."></div></div>
 <div id="serviceList" class="muted">Servis kayıtları yükleniyor...</div>
 </section>
 <section class="card"><h2>Müşteriler</h2><div id="customers" class="muted">Müşteriler yükleniyor...</div></section>
@@ -58,7 +58,7 @@ const SUPABASE_KEY='sb_publishable_1t2uuoDh5xCKkeBCMAfFCw_Z-CgewVQ';
 const supabase=createClient(SUPABASE_URL,SUPABASE_KEY);
 const $=id=>document.getElementById(id);
 let currentUser=null,currentProfile=null,customers=[],technicians=[],services=[];
-const statusLabels={pending:'Bekliyor',in_progress:'İşlemde',completed:'Tamamlandı',cancelled:'İptal'};
+const statusLabels={'Bekliyor':'Bekliyor','İşlemde':'İşlemde','Tamamlandı':'Tamamlandı','İptal':'İptal'};
 function message(text,isError=false){$('message').textContent=text;$('message').classList.toggle('error',isError)}
 function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function isAdmin(){return currentProfile?.role==='admin'}
@@ -132,7 +132,7 @@ async function saveService(e){
  const {error}=await supabase.from('service_orders').insert(payload);
  $('saveServiceButton').disabled=false;
  if(error){message('Servis kaydedilemedi: '+error.message,true);return}
- $('serviceForm').reset();$('serviceDate').value=dateToday();$('serviceStatus').value='pending';message('Servis kaydı oluşturuldu.');await loadServices();
+ $('serviceForm').reset();$('serviceDate').value=dateToday();$('serviceStatus').value='Bekliyor';message('Servis kaydı oluşturuldu.');await loadServices();
 }
 async function saveStatus(id){
  const el=$('[data-status="'+CSS.escape(id)+'"]');
