@@ -47,6 +47,44 @@
 <div class="grid"><div><label for="filterStatus">Duruma göre filtrele</label><select id="filterStatus"><option value="">Tüm durumlar</option><option value="Bekliyor">Bekliyor</option><option value="İşlemde">İşlemde</option><option value="Tamamlandı">Tamamlandı</option><option value="İptal">İptal</option></select></div><div><label for="searchService">Ara (müşteri, servis no, kombi)</label><input id="searchService" placeholder="Arama..."></div></div>
 <div id="serviceList" class="muted">Servis kayıtları yükleniyor...</div>
 </section>
+
+<section class="card admin-only" id="financeSection">
+  <h2>💰 Finans Takibi <span class="badge">Yalnızca yönetici</span></h2>
+  <p class="muted small">Servis ücretlerini, tahsilatları ve kalan alacakları buradan yönetin. Tutarlar TL'dir.</p>
+  <div class="grid">
+    <div class="service"><div class="muted small">Toplam hizmet bedeli</div><h2 id="financeTotal">₺0,00</h2></div>
+    <div class="service"><div class="muted small">Toplam tahsilat</div><h2 id="financeCollected">₺0,00</h2></div>
+    <div class="service"><div class="muted small">Kalan alacak</div><h2 id="financeDebt">₺0,00</h2></div>
+    <div class="service"><div class="muted small">Tahmini brüt kazanç*</div><h2 id="financeProfit">₺0,00</h2></div>
+  </div>
+  <hr>
+  <h3>Servis ücretlerini düzenle</h3>
+  <label for="financeService">Servis / müşteri seç</label>
+  <select id="financeService"><option value="">Önce servis seçin</option></select>
+  <div id="financeSelectedInfo" class="notice">Finans bilgilerini düzenlemek için bir servis seçin.</div>
+  <div class="grid">
+    <div><label for="laborAmount">İşçilik bedeli (₺)</label><input id="laborAmount" type="number" min="0" step="0.01" value="0"></div>
+    <div><label for="partsAmount">Parça satış toplamı (₺)</label><input id="partsAmount" type="number" min="0" step="0.01" value="0"></div>
+    <div><label for="partsCost">Parça alış maliyeti (₺)</label><input id="partsCost" type="number" min="0" step="0.01" value="0"></div>
+    <div><label for="travelAmount">Müşteriden alınacak yol/servis ücreti (₺)</label><input id="travelAmount" type="number" min="0" step="0.01" value="0"></div>
+    <div><label for="travelCost">Yol gideri maliyeti (₺)</label><input id="travelCost" type="number" min="0" step="0.01" value="0"></div>
+  </div>
+  <button type="button" id="saveFinanceButton">Ücretleri Kaydet</button>
+  <div id="financeDetail" class="notice">Servis seçilince toplam, tahsilat ve kalan tutar burada gösterilir.</div>
+  <hr>
+  <h3>Tahsilat ekle</h3>
+  <div class="grid">
+    <div><label for="paymentAmount">Tahsil edilen tutar (₺) *</label><input id="paymentAmount" type="number" min="0.01" step="0.01" required></div>
+    <div><label for="paymentMethod">Ödeme yöntemi *</label><select id="paymentMethod"><option value="Nakit">Nakit</option><option value="Kart">Banka/Kredi kartı</option><option value="Havale/EFT">Havale/EFT</option><option value="Diğer">Diğer</option></select></div>
+    <div><label for="paymentDate">Tahsilat tarihi *</label><input id="paymentDate" type="datetime-local" required></div>
+  </div>
+  <label for="paymentNote">Tahsilat notu</label><input id="paymentNote" placeholder="Örn. kapora, kalan ödeme...">
+  <button type="button" id="addPaymentButton">Tahsilatı Kaydet</button>
+  <hr>
+  <h3>Son tahsilatlar</h3>
+  <div id="paymentList" class="muted">Tahsilatlar yükleniyor...</div>
+  <p class="muted small">* Tahmini brüt kazanç = işçilik + parça satışı + yol ücreti − parça maliyeti − yol gideri. İşçilik/personel maliyeti dahil değildir.</p>
+</section>
 <section class="card"><h2>Müşteriler</h2><div id="customers" class="muted">Müşteriler yükleniyor...</div></section>
 </div>
 <div id="message" class="notice" role="status" aria-live="polite"></div>
@@ -57,7 +95,7 @@ const SUPABASE_URL='https://iqpwltycxnpuechpvyqb.supabase.co';
 const SUPABASE_KEY='sb_publishable_1t2uuoDh5xCKkeBCMAfFCw_Z-CgewVQ';
 const supabase=createClient(SUPABASE_URL,SUPABASE_KEY);
 const $=id=>document.getElementById(id);
-let currentUser=null,currentProfile=null,customers=[],technicians=[],services=[];
+let currentUser=null,currentProfile=null,customers=[],technicians=[],services=[],financeRows=[],payments=[];
 const statusLabels={'Bekliyor':'Bekliyor','İşlemde':'İşlemde','Tamamlandı':'Tamamlandı','İptal':'İptal'};
 function message(text,isError=false){$('message').textContent=text;$('message').classList.toggle('error',isError)}
 function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
@@ -82,7 +120,7 @@ async function showApp(user){
  applyRoleUI();$('serviceDate').value=dateToday();
  await loadAll();
 }
-async function loadAll(){await loadCustomers();await loadTechnicians();await loadServices()}
+async function loadAll(){await loadCustomers();await loadTechnicians();await loadServices();if(isAdmin())await loadFinance();}
 async function loadCustomers(){
  const {data,error}=await supabase.from('customers').select('id,name,phone,address,notes').order('name');
  if(error){$('customers').textContent='Müşteriler okunamadı: '+error.message;$('serviceCustomer').innerHTML='<option value="">Müşteriler yüklenemedi</option>';return}
@@ -134,6 +172,72 @@ async function saveService(e){
  if(error){message('Servis kaydedilemedi: '+error.message,true);return}
  $('serviceForm').reset();$('serviceDate').value=dateToday();$('serviceStatus').value='Bekliyor';message('Servis kaydı oluşturuldu.');await loadServices();
 }
+
+function money(value){return new Intl.NumberFormat('tr-TR',{style:'currency',currency:'TRY'}).format(Number(value)||0)}
+function nval(id){const n=Number($(id).value);return Number.isFinite(n)&&n>=0?n:0}
+function serviceLabel(s){const c=customers.find(x=>x.id===s.customer_id);return 'Servis #'+(s.service_no??'—')+' · '+(c?.name||'Müşteri bulunamadı')+' · '+(s.service_date||'')}
+function financeFor(serviceId){return financeRows.find(x=>x.service_id===serviceId)||{service_id:serviceId,labor_amount:0,parts_amount:0,parts_cost:0,travel_amount:0,travel_cost:0}}
+function totalFor(serviceId){const f=financeFor(serviceId);return Number(f.labor_amount||0)+Number(f.parts_amount||0)+Number(f.travel_amount||0)}
+function paidFor(serviceId){return payments.filter(p=>p.service_id===serviceId).reduce((sum,p)=>sum+Number(p.amount||0),0)}
+function updateFinanceSummary(){
+ const total=services.reduce((sum,s)=>sum+totalFor(s.id),0);
+ const paid=payments.reduce((sum,p)=>sum+Number(p.amount||0),0);
+ const debt=services.reduce((sum,s)=>sum+Math.max(0,totalFor(s.id)-paidFor(s.id)),0);
+ const profit=financeRows.reduce((sum,f)=>sum+Number(f.labor_amount||0)+Number(f.parts_amount||0)+Number(f.travel_amount||0)-Number(f.parts_cost||0)-Number(f.travel_cost||0),0);
+ $('financeTotal').textContent=money(total);$('financeCollected').textContent=money(paid);$('financeDebt').textContent=money(debt);$('financeProfit').textContent=money(profit);
+}
+async function loadFinance(){
+ const [{data:fr,error:fe},{data:pa,error:pe}]=await Promise.all([
+  supabase.from('service_financials').select('service_id,labor_amount,parts_amount,parts_cost,travel_amount,travel_cost,updated_at'),
+  supabase.from('payments').select('id,service_id,amount,payment_method,payment_date,note,received_by,created_at').order('payment_date',{ascending:false})
+ ]);
+ if(fe){message('Finans bilgileri okunamadı: '+fe.message,true);return}
+ if(pe){message('Tahsilatlar okunamadı: '+pe.message,true);return}
+ financeRows=fr||[];payments=pa||[];
+ $('financeService').innerHTML='<option value="">Servis seçin</option>'+services.map(s=>'<option value="'+esc(s.id)+'">'+esc(serviceLabel(s))+'</option>').join('');
+ if(!$('financeService').value&&services.length)$('financeService').value=services[0].id;
+ renderSelectedFinance();renderPayments();updateFinanceSummary();
+}
+function renderSelectedFinance(){
+ const id=$('financeService').value;
+ if(!id){$('financeSelectedInfo').textContent='Finans bilgilerini düzenlemek için bir servis seçin.';$('financeDetail').textContent='Henüz servis seçilmedi.';return}
+ const f=financeFor(id),s=services.find(x=>x.id===id);
+ $('laborAmount').value=Number(f.labor_amount||0);$('partsAmount').value=Number(f.parts_amount||0);$('partsCost').value=Number(f.parts_cost||0);$('travelAmount').value=Number(f.travel_amount||0);$('travelCost').value=Number(f.travel_cost||0);
+ $('financeSelectedInfo').textContent=serviceLabel(s);
+ const total=totalFor(id),paid=paidFor(id),debt=total-paid;
+ $('financeDetail').textContent='Toplam hizmet bedeli: '+money(total)+' | Tahsilat: '+money(paid)+' | '+(debt>=0?'Kalan borç: '+money(debt):'Fazla tahsilat: '+money(-debt));
+}
+async function saveFinance(){
+ const id=$('financeService').value;
+ if(!id){message('Önce finans bilgisi gireceğiniz servisi seçin.',true);return}
+ const payload={service_id:id,labor_amount:nval('laborAmount'),parts_amount:nval('partsAmount'),parts_cost:nval('partsCost'),travel_amount:nval('travelAmount'),travel_cost:nval('travelCost'),updated_at:new Date().toISOString()};
+ const existing=financeRows.some(f=>f.service_id===id);
+ const result=existing
+  ?await supabase.from('service_financials').update(payload).eq('service_id',id)
+  :await supabase.from('service_financials').insert(payload);
+ if(result.error){message('Ücretler kaydedilemedi: '+result.error.message,true);return}
+ message('Servis ücretleri kaydedildi.');await loadFinance();
+}
+async function addPayment(){
+ const id=$('financeService').value,amount=Number($('paymentAmount').value),method=$('paymentMethod').value,date=$('paymentDate').value;
+ if(!id){message('Önce tahsilat alınan servisi seçin.',true);return}
+ if(!Number.isFinite(amount)||amount<=0){message('Tahsilat tutarı 0’dan büyük olmalı.',true);return}
+ if(!date){message('Tahsilat tarihini girin.',true);return}
+ const payload={service_id:id,amount,payment_method:method,payment_date:new Date(date).toISOString(),note:$('paymentNote').value.trim()||null,received_by:currentUser.id};
+ const {error}=await supabase.from('payments').insert(payload);
+ if(error){message('Tahsilat kaydedilemedi: '+error.message,true);return}
+ $('paymentAmount').value='';$('paymentNote').value='';message('Tahsilat kaydedildi.');await loadFinance();
+}
+function renderPayments(){
+ if(!payments.length){$('paymentList').textContent='Henüz tahsilat kaydı yok.';return}
+ $('paymentList').innerHTML=payments.slice(0,100).map(p=>{
+  const s=services.find(x=>x.id===p.service_id);
+  const c=s?customers.find(x=>x.id===s.customer_id):null;
+  const date=p.payment_date?new Date(p.payment_date).toLocaleString('tr-TR'):'—';
+  return '<div class="service"><strong>'+esc(c?.name||'Bilinmeyen müşteri')+'</strong> · '+esc(s?'Servis #'+(s.service_no??'—'):'')+'<p><strong>'+esc(money(p.amount))+'</strong> — '+esc(p.payment_method||'')+'</p><p class="muted small">'+esc(date)+(p.note?' · '+esc(p.note):'')+'</p></div>';
+ }).join('');
+}
+
 async function saveStatus(id){
  const el=document.querySelector('[data-status="'+CSS.escape(id)+'"]');
  if(!el){message('Durum seçimi bulunamadı. Sayfayı yenileyip tekrar deneyin.',true);return}
@@ -156,6 +260,10 @@ $('logoutButton').addEventListener('click',async()=>{const {error}=await supabas
 $('customerForm').addEventListener('submit',saveCustomer);$('serviceForm').addEventListener('submit',saveService);
 $('refreshButton').addEventListener('click',loadAll);$('filterStatus').addEventListener('change',renderServices);$('searchService').addEventListener('input',renderServices);
 $('toggleCustomer').addEventListener('click',()=>$('customerForm').classList.toggle('hidden'));
+$('financeService').addEventListener('change',renderSelectedFinance);
+$('saveFinanceButton').addEventListener('click',saveFinance);
+$('addPaymentButton').addEventListener('click',addPayment);
+$('paymentDate').value=new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,16);
 supabase.auth.onAuthStateChange((event,session)=>{if(event==='SIGNED_OUT'){showLogin()}else if(event==='SIGNED_IN'&&session){setTimeout(()=>showApp(session.user),0)}});
 init();
 </script>
