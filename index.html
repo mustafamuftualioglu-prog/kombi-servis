@@ -35,7 +35,7 @@
 <button type="submit">Müşteriyi Kaydet</button></form>
 </section>
 <section class="card">
-<div class="section-title"><h2>Yeni Servis Kaydı</h2><span class="muted small">* Zorunlu alanlar</span></div>
+<div class="section-title"><h2 id="serviceFormTitle">Yeni Servis Kaydı</h2><span class="muted small">* Zorunlu alanlar</span></div>
 <form id="serviceForm">
 <div class="grid">
 <div><label for="serviceCustomer">Müşteri *</label><select id="serviceCustomer" required><option value="">Önce müşteri seç</option></select></div>
@@ -49,7 +49,7 @@
 <label for="problem">Arıza açıklaması</label><textarea id="problem" placeholder="Müşterinin bildirdiği arıza..."></textarea>
 <label for="workDone">Yapılan işlem</label><textarea id="workDone" placeholder="Kontroller ve yapılan işlemler..."></textarea>
 <label for="partsNote">Kullanılan parçalar / not</label><textarea id="partsNote" placeholder="Parça adı, miktar veya servis notu..."></textarea>
-<button id="saveServiceButton" type="submit">Servis Kaydını Oluştur</button>
+<div class="row"><button id="saveServiceButton" type="submit">Servis Kaydını Oluştur</button><button id="cancelEditServiceButton" class="secondary hidden" type="button">Düzenlemeyi İptal Et</button></div>
 </form>
 </section>
 <section class="card">
@@ -105,7 +105,7 @@ const SUPABASE_URL='https://iqpwltycxnpuechpvyqb.supabase.co';
 const SUPABASE_KEY='sb_publishable_1t2uuoDh5xCKkeBCMAfFCw_Z-CgewVQ';
 const supabase=createClient(SUPABASE_URL,SUPABASE_KEY);
 const $=id=>document.getElementById(id);
-let currentUser=null,currentProfile=null,customers=[],technicians=[],services=[],financeRows=[],payments=[];
+let currentUser=null,currentProfile=null,customers=[],technicians=[],services=[],financeRows=[],payments=[],editingServiceId=null;
 const statusLabels={'Bekliyor':'Bekliyor','İşlemde':'İşlemde','Tamamlandı':'Tamamlandı','İptal':'İptal'};
 function message(text,isError=false){$('message').textContent=text;$('message').classList.toggle('error',isError);$('message').scrollIntoView({behavior:'smooth',block:'center'})}
 function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
@@ -162,9 +162,35 @@ function renderServices(){
  $('serviceList').innerHTML=list.map(s=>{
  const c=customers.find(x=>x.id===s.customer_id),t=technicians.find(x=>x.id===s.technician_id);
  const editStatus='<label>Durumu güncelle</label><select data-status="'+esc(s.id)+'">'+Object.entries(statusLabels).map(([v,l])=>'<option value="'+v+'" '+(s.status===v?'selected':'')+'>'+l+'</option>').join('')+'</select><button class="secondary" data-save-status="'+esc(s.id)+'">Durumu Kaydet</button>';
- return '<article class="service"><div class="section-title"><h3>Servis #'+esc(s.service_no??'—')+' · '+esc(c?.name||'Müşteri bulunamadı')+'</h3><span class="badge">'+esc(statusLabels[s.status]||s.status||'Durum yok')+'</span></div><p><strong>Tarih:</strong> '+esc(s.service_date||'—')+' &nbsp; <strong>Teknisyen:</strong> '+esc(t?.full_name||(s.technician_id?'Atanmış kullanıcı':'Atanmadı'))+'</p><p><strong>Kombi:</strong> '+esc([s.boiler_brand,s.boiler_model].filter(Boolean).join(' ')||'Belirtilmedi')+' &nbsp; <strong>Arıza kodu:</strong> '+esc(s.error_code||'—')+'</p><p><strong>Arıza:</strong> '+esc(s.problem||'—')+'</p><p><strong>Yapılan işlem:</strong> '+esc(s.work_done||'—')+'</p><p><strong>Parça/not:</strong> '+esc(s.parts_note||'—')+'</p><div class="row"><button type="button" class="secondary" data-pdf-service="'+esc(s.id)+'">Servis Formu / PDF</button></div><div class="grid"><div>'+editStatus+'</div>'+(isAdmin()?'<div><label>Teknisyen ata</label><select data-tech="'+esc(s.id)+'"><option value="">Atanmadı</option>'+technicians.map(t=>'<option value="'+esc(t.id)+'" '+(t.id===s.technician_id?'selected':'')+'>'+esc(t.full_name||t.id)+'</option>').join('')+'</select><button class="secondary" data-save-tech="'+esc(s.id)+'">Atamayı Kaydet</button></div>':'')+'</div></article>';
+ return '<article class="service"><div class="section-title"><h3>Servis #'+esc(s.service_no??'—')+' · '+esc(c?.name||'Müşteri bulunamadı')+'</h3><span class="badge">'+esc(statusLabels[s.status]||s.status||'Durum yok')+'</span></div><p><strong>Tarih:</strong> '+esc(s.service_date||'—')+' &nbsp; <strong>Teknisyen:</strong> '+esc(t?.full_name||(s.technician_id?'Atanmış kullanıcı':'Atanmadı'))+'</p><p><strong>Kombi:</strong> '+esc([s.boiler_brand,s.boiler_model].filter(Boolean).join(' ')||'Belirtilmedi')+' &nbsp; <strong>Arıza kodu:</strong> '+esc(s.error_code||'—')+'</p><p><strong>Arıza:</strong> '+esc(s.problem||'—')+'</p><p><strong>Yapılan işlem:</strong> '+esc(s.work_done||'—')+'</p><p><strong>Parça/not:</strong> '+esc(s.parts_note||'—')+'</p><div class="row"><button type="button" class="secondary" data-edit-service="'+esc(s.id)+'">Kaydı Düzenle</button><button type="button" class="secondary" data-pdf-service="'+esc(s.id)+'">Servis Formu / PDF</button></div><div class="grid"><div>'+editStatus+'</div>'+(isAdmin()?'<div><label>Teknisyen ata</label><select data-tech="'+esc(s.id)+'"><option value="">Atanmadı</option>'+technicians.map(t=>'<option value="'+esc(t.id)+'" '+(t.id===s.technician_id?'selected':'')+'>'+esc(t.full_name||t.id)+'</option>').join('')+'</select><button class="secondary" data-save-tech="'+esc(s.id)+'">Atamayı Kaydet</button></div>':'')+'</div></article>';
  }).join('');
 
+}
+function resetServiceEditMode(){
+ editingServiceId=null;
+ $('serviceFormTitle').textContent='Yeni Servis Kaydı';
+ $('saveServiceButton').textContent='Servis Kaydını Oluştur';
+ $('cancelEditServiceButton').classList.add('hidden');
+}
+function startEditService(id){
+ const s=services.find(item=>item.id===id);
+ if(!s){message('Düzenlenecek servis bulunamadı. Listeyi yenileyin.',true);return}
+ editingServiceId=id;
+ $('serviceFormTitle').textContent='Servis Kaydını Düzenle · #'+(s.service_no??'—');
+ $('saveServiceButton').textContent='Değişiklikleri Kaydet';
+ $('cancelEditServiceButton').classList.remove('hidden');
+ $('serviceCustomer').value=s.customer_id||'';
+ $('serviceDate').value=s.service_date||dateToday();
+ $('boilerBrand').value=s.boiler_brand||'';
+ $('boilerModel').value=s.boiler_model||'';
+ $('errorCode').value=s.error_code||'';
+ $('serviceStatus').value=s.status||'Bekliyor';
+ $('problem').value=s.problem||'';
+ $('workDone').value=s.work_done||'';
+ $('partsNote').value=s.parts_note||'';
+ if(isAdmin())$('technician').value=s.technician_id||'';
+ $('serviceForm').scrollIntoView({behavior:'smooth',block:'start'});
+ message('Servis #'+(s.service_no??'—')+' düzenleme için forma yüklendi. Değişikliklerini yapıp “Değişiklikleri Kaydet” düğmesine bas.');
 }
 async function saveCustomer(e){
  e.preventDefault();const payload={name:$('customerName').value.trim(),phone:$('customerPhone').value.trim()||null,address:$('customerAddress').value.trim()||null,notes:$('customerNotes').value.trim()||null,created_by:currentUser.id};
@@ -173,13 +199,38 @@ async function saveCustomer(e){
  $('customerForm').reset();message('Müşteri kaydedildi.');await loadCustomers();
 }
 async function saveService(e){
- e.preventDefault();$('saveServiceButton').disabled=true;
- const technicianId=isAdmin()?($('technician').value||null):currentUser.id;
- const payload={customer_id:$('serviceCustomer').value,technician_id:technicianId,service_date:$('serviceDate').value,status:$('serviceStatus').value,boiler_brand:$('boilerBrand').value.trim()||null,boiler_model:$('boilerModel').value.trim()||null,error_code:$('errorCode').value.trim()||null,problem:$('problem').value.trim()||null,work_done:$('workDone').value.trim()||null,parts_note:$('partsNote').value.trim()||null,created_by:currentUser.id};
- const {error}=await supabase.from('service_orders').insert(payload);
+ e.preventDefault();
+ $('saveServiceButton').disabled=true;
+ const payload={
+  customer_id:$('serviceCustomer').value,
+  service_date:$('serviceDate').value,
+  status:$('serviceStatus').value,
+  boiler_brand:$('boilerBrand').value.trim()||null,
+  boiler_model:$('boilerModel').value.trim()||null,
+  error_code:$('errorCode').value.trim()||null,
+  problem:$('problem').value.trim()||null,
+  work_done:$('workDone').value.trim()||null,
+  parts_note:$('partsNote').value.trim()||null
+ };
+ if(isAdmin())payload.technician_id=$('technician').value||null;
+ else if(!editingServiceId)payload.technician_id=currentUser.id;
+ let result;
+ if(editingServiceId){
+  result=await supabase.from('service_orders').update(payload).eq('id',editingServiceId).select('id');
+ }else{
+  result=await supabase.from('service_orders').insert({...payload,created_by:currentUser.id});
+ }
  $('saveServiceButton').disabled=false;
- if(error){message('Servis kaydedilemedi: '+error.message,true);return}
- $('serviceForm').reset();$('serviceDate').value=dateToday();$('serviceStatus').value='Bekliyor';message('Servis kaydı oluşturuldu.');await loadServices();
+ if(result.error){message((editingServiceId?'Servis güncellenemedi: ':'Servis kaydedilemedi: ')+result.error.message,true);return}
+ if(editingServiceId&&(!result.data||result.data.length===0)){message('Değişiklikler kaydedilmedi: servis güncellenemedi veya güncelleme izni yok.',true);return}
+ const wasEditing=Boolean(editingServiceId);
+ $('serviceForm').reset();
+ $('serviceDate').value=dateToday();
+ $('serviceStatus').value='Bekliyor';
+ resetServiceEditMode();
+ message(wasEditing?'Servis kaydı güncellendi.':'Servis kaydı oluşturuldu.');
+ await loadServices();
+ if(isAdmin())await loadFinance();
 }
 
 function money(value){return new Intl.NumberFormat('tr-TR',{style:'currency',currency:'TRY'}).format(Number(value)||0)}
@@ -327,6 +378,8 @@ async function saveTechnician(id){
 document.addEventListener('click',event=>{
  const target=event.target instanceof Element?event.target:null;
  if(!target)return;
+ const editButton=target.closest('[data-edit-service]');
+ if(editButton){event.preventDefault();startEditService(editButton.dataset.editService);return}
  const statusButton=target.closest('[data-save-status]');
  if(statusButton){event.preventDefault();saveStatus(statusButton.dataset.saveStatus);return}
  const techButton=target.closest('[data-save-tech]');
@@ -336,7 +389,7 @@ document.addEventListener('click',event=>{
 });
 $('loginForm').addEventListener('submit',async e=>{e.preventDefault();$('loginButton').disabled=true;message('Giriş yapılıyor...');const {data,error}=await supabase.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});$('loginButton').disabled=false;if(error){message('Giriş yapılamadı: '+error.message,true);return}await showApp(data.user);});
 $('logoutButton').addEventListener('click',async()=>{const {error}=await supabase.auth.signOut();if(error){message(error.message,true);return}currentUser=null;currentProfile=null;showLogin();message('Çıkış yapıldı.')});
-$('customerForm').addEventListener('submit',saveCustomer);$('serviceForm').addEventListener('submit',saveService);
+$('customerForm').addEventListener('submit',saveCustomer);$('serviceForm').addEventListener('submit',saveService);$('cancelEditServiceButton').addEventListener('click',()=>{ $('serviceForm').reset();$('serviceDate').value=dateToday();$('serviceStatus').value='Bekliyor';resetServiceEditMode();message('Düzenleme iptal edildi. Yeni servis kaydı oluşturabilirsiniz.');});
 $('refreshButton').addEventListener('click',loadAll);$('filterStatus').addEventListener('change',renderServices);$('searchService').addEventListener('input',renderServices);
 $('toggleCustomer').addEventListener('click',()=>$('customerForm').classList.toggle('hidden'));
 $('financeService').addEventListener('change',renderSelectedFinance);
