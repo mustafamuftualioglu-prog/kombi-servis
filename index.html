@@ -136,16 +136,20 @@ async function saveService(e){
 }
 async function saveStatus(id){
  const el=document.querySelector('[data-status="'+CSS.escape(id)+'"]');
- const {error}=await supabase.from('service_orders').update({status:el.value,updated_at:new Date().toISOString()}).eq('id',id);
+ if(!el){message('Durum seçimi bulunamadı. Sayfayı yenileyip tekrar deneyin.',true);return}
+ const {data,error}=await supabase.from('service_orders').update({status:el.value}).eq('id',id).select('id');
  if(error){message('Durum güncellenemedi: '+error.message,true);return}
- message('Servis durumu güncellendi.');await loadServices();
+ if(!data||data.length===0){message('Durum kaydedilmedi: servis bulunamadı veya güncelleme izni reddedildi.',true);return}
+ message('Servis durumu güncellendi ve kaydedildi.');await loadServices();
 }
 async function saveTechnician(id){
  if(!isAdmin()){message('Teknisyen atama yetkiniz yok.',true);return}
  const el=document.querySelector('[data-tech="'+CSS.escape(id)+'"]');
- const {error}=await supabase.from('service_orders').update({technician_id:el.value||null,updated_at:new Date().toISOString()}).eq('id',id);
+ if(!el){message('Teknisyen seçimi bulunamadı. Sayfayı yenileyip tekrar deneyin.',true);return}
+ const {data,error}=await supabase.from('service_orders').update({technician_id:el.value||null}).eq('id',id).select('id');
  if(error){message('Teknisyen atanamadı: '+error.message,true);return}
- message('Teknisyen ataması güncellendi.');await loadServices();
+ if(!data||data.length===0){message('Teknisyen atanamadı: servis bulunamadı veya güncelleme izni reddedildi.',true);return}
+ message('Teknisyen ataması güncellendi ve kaydedildi.');await loadServices();
 }
 $('loginForm').addEventListener('submit',async e=>{e.preventDefault();$('loginButton').disabled=true;message('Giriş yapılıyor...');const {data,error}=await supabase.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});$('loginButton').disabled=false;if(error){message('Giriş yapılamadı: '+error.message,true);return}await showApp(data.user);});
 $('logoutButton').addEventListener('click',async()=>{const {error}=await supabase.auth.signOut();if(error){message(error.message,true);return}currentUser=null;currentProfile=null;showLogin();message('Çıkış yapıldı.')});
