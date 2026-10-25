@@ -135,14 +135,14 @@ async function saveService(e){
  $('serviceForm').reset();$('serviceDate').value=dateToday();$('serviceStatus').value='Bekliyor';message('Servis kaydı oluşturuldu.');await loadServices();
 }
 async function saveStatus(id){
- const el=$('[data-status="'+CSS.escape(id)+'"]');
+ const el=document.querySelector('[data-status="'+CSS.escape(id)+'"]');
  const {error}=await supabase.from('service_orders').update({status:el.value,updated_at:new Date().toISOString()}).eq('id',id);
  if(error){message('Durum güncellenemedi: '+error.message,true);return}
  message('Servis durumu güncellendi.');await loadServices();
 }
 async function saveTechnician(id){
  if(!isAdmin()){message('Teknisyen atama yetkiniz yok.',true);return}
- const el=$('[data-tech="'+CSS.escape(id)+'"]');
+ const el=document.querySelector('[data-tech="'+CSS.escape(id)+'"]');
  const {error}=await supabase.from('service_orders').update({technician_id:el.value||null,updated_at:new Date().toISOString()}).eq('id',id);
  if(error){message('Teknisyen atanamadı: '+error.message,true);return}
  message('Teknisyen ataması güncellendi.');await loadServices();
