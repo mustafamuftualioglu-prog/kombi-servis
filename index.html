@@ -189,8 +189,8 @@ function startEditService(id){
  $('workDone').value=s.work_done||'';
  $('partsNote').value=s.parts_note||'';
  if(isAdmin())$('technician').value=s.technician_id||'';
- $('serviceForm').scrollIntoView({behavior:'smooth',block:'start'});
- message('Servis #'+(s.service_no??'—')+' düzenleme için forma yüklendi. Değişikliklerini yapıp “Değişiklikleri Kaydet” düğmesine bas.');
+ message('Servis #'+(s.service_no??'—')+' düzenleme için forma yüklendi. Bilgileri değiştirip “Değişiklikleri Kaydet” düğmesine bas.');
+ setTimeout(()=>$('serviceForm').scrollIntoView({behavior:'smooth',block:'start'}),120);
 }
 async function saveCustomer(e){
  e.preventDefault();const payload={name:$('customerName').value.trim(),phone:$('customerPhone').value.trim()||null,address:$('customerAddress').value.trim()||null,notes:$('customerNotes').value.trim()||null,created_by:currentUser.id};
