@@ -25,6 +25,7 @@
 
 <nav class="card row app-nav" aria-label="Uygulama bölümleri">
   <button type="button" id="showServicesPage">🔧 Servis ve Müşteriler</button>
+  <button type="button" id="showInventoryPage" class="secondary">📦 Depo / Garanti</button>
   <button type="button" id="showManagementPage" class="secondary admin-only">🔒 Yönetim / Finans</button>
 </nav>
 <div id="servicesPage">
@@ -60,6 +61,69 @@
 
 <section class="card"><h2>Müşteriler</h2><div id="customers" class="muted">Müşteriler yükleniyor...</div></section>
 </div>
+
+<div id="inventoryPage" class="hidden">
+ <section class="card">
+  <div class="section-title"><h2>📦 Depo ve Parçalar</h2><button type="button" id="refreshInventoryButton" class="secondary" style="width:auto">Depoyu Yenile</button></div>
+  <p class="muted small">Parçalar, stok miktarları ve garanti kayıtları burada tutulur.</p>
+  <div id="inventoryMessage" class="notice">Depo bilgileri yükleniyor...</div>
+  <div id="inventoryList" class="muted">Parçalar yükleniyor...</div>
+ </section>
+ <section class="card admin-only">
+  <h2>Yeni Parça Ekle</h2>
+  <form id="addPartForm">
+   <div class="grid">
+    <div><label for="newPartName">Parça adı *</label><input id="newPartName" required placeholder="Örn. Sirkülasyon pompası"></div>
+    <div><label for="newPartCode">Parça kodu</label><input id="newPartCode" placeholder="Örn. POM-001"></div>
+    <div><label for="newPartBrand">Marka</label><input id="newPartBrand"></div>
+    <div><label for="newPartModel">Model</label><input id="newPartModel"></div>
+    <div><label for="newPartUnit">Birim</label><select id="newPartUnit"><option value="adet">Adet</option><option value="metre">Metre</option><option value="paket">Paket</option><option value="kg">Kg</option><option value="litre">Litre</option></select></div>
+    <div><label for="newPartMinStock">Minimum stok uyarısı</label><input id="newPartMinStock" type="number" min="0" step="0.01" value="1"></div>
+    <div><label for="newPartPurchasePrice">Alış fiyatı (₺)</label><input id="newPartPurchasePrice" type="number" min="0" step="0.01" value="0"></div>
+    <div><label for="newPartSalePrice">Satış fiyatı (₺)</label><input id="newPartSalePrice" type="number" min="0" step="0.01" value="0"></div>
+    <div><label for="newPartSupplier">Tedarikçi</label><input id="newPartSupplier"></div>
+   </div>
+   <button type="submit">Parçayı Kaydet</button>
+  </form>
+ </section>
+ <section class="card">
+  <h2>Stok Giriş / Çıkış</h2>
+  <p class="muted small">Depodan çıkan parçayı istersen ilgili servis kaydına bağlayabilirsin.</p>
+  <div class="grid">
+   <div><label for="stockPart">Parça *</label><select id="stockPart" required><option value="">Parça seçin</option></select></div>
+   <div class="admin-only"><label for="stockMovementType">Hareket türü</label><select id="stockMovementType"><option value="Giriş">Depoya giriş</option><option value="Çıkış">Depodan çıkış</option></select></div>
+   <div><label for="stockQuantity">Miktar *</label><input id="stockQuantity" type="number" min="0.01" step="0.01" value="1" required></div>
+   <div><label for="stockService">İlgili servis (isteğe bağlı)</label><select id="stockService"><option value="">Servis seçilmedi</option></select></div>
+  </div>
+  <label for="stockNote">Not</label><input id="stockNote" placeholder="Örn. depoya alış veya serviste kullanıldı">
+  <button type="button" id="saveStockMovementButton">Stok Hareketini Kaydet</button>
+  <div id="stockMovementHistory" class="muted">Stok hareketleri yükleniyor...</div>
+ </section>
+ <section class="card">
+  <h2>🏷️ Garanti Kaydı Oluştur</h2>
+  <p class="muted small">Depodan parça seçersen garanti kaydı oluşturulurken stoktan 1 adet düşülür. Depo dışı parçalar için parçayı elle yazabilirsin.</p>
+  <form id="warrantyForm">
+   <div class="grid">
+    <div><label for="warrantyCustomer">Müşteri *</label><select id="warrantyCustomer" required><option value="">Müşteri seçin</option></select></div>
+    <div><label for="warrantyService">İlgili servis</label><select id="warrantyService"><option value="">Servis seçilmedi</option></select></div>
+    <div><label for="warrantyPart">Depodaki parça (isteğe bağlı)</label><select id="warrantyPart"><option value="">Depo dışı / elle parça gir</option></select></div>
+    <div><label for="warrantyPartName">Parça adı *</label><input id="warrantyPartName" required placeholder="Örn. Sirkülasyon pompası"></div>
+    <div><label for="warrantyBrand">Marka</label><input id="warrantyBrand"></div>
+    <div><label for="warrantySerial">Seri numarası</label><input id="warrantySerial"></div>
+    <div><label for="warrantyInstalledAt">Montaj tarihi *</label><input id="warrantyInstalledAt" type="date" required></div>
+    <div><label for="warrantyMonths">Garanti süresi (ay) *</label><input id="warrantyMonths" type="number" min="1" max="240" value="24" required></div>
+    <div><label for="warrantyUntilPreview">Garanti bitiş tarihi (hesaplanan)</label><input id="warrantyUntilPreview" readonly></div>
+   </div>
+   <label for="warrantyNotes">Garanti notu</label><textarea id="warrantyNotes" placeholder="Seri numarası, tedarikçi garantisi veya ek açıklama..."></textarea>
+   <button type="submit" id="saveWarrantyButton">Garanti Kaydını Oluştur</button>
+  </form>
+ </section>
+ <section class="card">
+  <div class="section-title"><h2>Garanti Kayıtları</h2><input id="warrantySearch" placeholder="Garanti no, parça, müşteri veya seri no ara" style="max-width:420px"></div>
+  <div id="warrantyList" class="muted">Garanti kayıtları yükleniyor...</div>
+ </section>
+</div>
+
 <div id="managementPage" class="hidden">
 <div class="card admin-only" id="dashboardSection">
   <div class="section-title"><h2>📊 Yönetici Özeti</h2><span class="muted small" id="dashboardDate"></span></div>
@@ -120,7 +184,7 @@ const SUPABASE_URL='https://iqpwltycxnpuechpvyqb.supabase.co';
 const SUPABASE_KEY='sb_publishable_1t2uuoDh5xCKkeBCMAfFCw_Z-CgewVQ';
 const supabase=createClient(SUPABASE_URL,SUPABASE_KEY);
 const $=id=>document.getElementById(id);
-let currentUser=null,currentProfile=null,customers=[],technicians=[],services=[],financeRows=[],payments=[],editingServiceId=null;
+let currentUser=null,currentProfile=null,customers=[],technicians=[],services=[],financeRows=[],payments=[],editingServiceId=null,inventoryParts=[],inventoryCosts=[],inventoryMovements=[],warranties=[];
 const statusLabels={'Bekliyor':'Bekliyor','İşlemde':'İşlemde','Tamamlandı':'Tamamlandı','İptal':'İptal'};
 function message(text,isError=false){$('message').textContent=text;$('message').classList.toggle('error',isError);$('message').scrollIntoView({behavior:'smooth',block:'center'})}
 function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
@@ -130,12 +194,15 @@ function applyRoleUI(){$('.admin-only').forEach(el=>el.classList.toggle('hidden'
 
 function showAppPage(page){
  const showManagement=page==='management'&&isAdmin();
- $('servicesPage').classList.toggle('hidden',showManagement);
+ const showInventory=page==='inventory';
+ $('servicesPage').classList.toggle('hidden',showManagement||showInventory);
  $('managementPage').classList.toggle('hidden',!showManagement);
- $('showServicesPage').classList.toggle('secondary',showManagement);
+ $('inventoryPage').classList.toggle('hidden',!showInventory);
+ $('showServicesPage').classList.toggle('secondary',showManagement||showInventory);
+ $('showInventoryPage').classList.toggle('secondary',!showInventory);
  if(isAdmin())$('showManagementPage').classList.toggle('secondary',!showManagement);
- if(showManagement)$('managementPage').scrollIntoView({behavior:'smooth',block:'start'});
- else $('servicesPage').scrollIntoView({behavior:'smooth',block:'start'});
+ const target=showManagement?'managementPage':showInventory?'inventoryPage':'servicesPage';
+ $(target).scrollIntoView({behavior:'smooth',block:'start'});
 }
 
 function $$(selector){return [...document.querySelectorAll(selector)]}
@@ -156,7 +223,7 @@ async function showApp(user){
  applyRoleUI();showAppPage('services');$('serviceDate').value=dateToday();
  await loadAll();
 }
-async function loadAll(){await loadCustomers();await loadTechnicians();await loadServices();if(isAdmin())await loadFinance();}
+async function loadAll(){await loadCustomers();await loadTechnicians();await loadServices();await loadInventory();await loadStockMovements();await loadWarranties();if(isAdmin())await loadFinance();}
 async function loadCustomers(){
  const {data,error}=await supabase.from('customers').select('id,name,phone,address,notes').order('name');
  if(error){$('customers').textContent='Müşteriler okunamadı: '+error.message;$('serviceCustomer').innerHTML='<option value="">Müşteriler yüklenemedi</option>';return}
@@ -258,6 +325,139 @@ async function saveService(e){
  message(wasEditing?'Servis kaydı güncellendi.':'Servis kaydı oluşturuldu.');
  await loadServices();
  if(isAdmin())await loadFinance();
+}
+
+
+function setInventoryMessage(text,isError=false){$('inventoryMessage').textContent=text;$('inventoryMessage').classList.toggle('error',isError)}
+function dateAddMonths(dateString,months){
+ if(!dateString)return '';
+ const d=new Date(dateString+'T12:00:00'),day=d.getDate();
+ d.setMonth(d.getMonth()+Number(months||0));
+ if(d.getDate()<day)d.setDate(0);
+ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function formatDate(value){return value?new Date(value+'T12:00:00').toLocaleDateString('tr-TR'):'—'}
+function warrantyNo(w){return 'GAR-'+String(w.warranty_no).padStart(6,'0')}
+function renderInventory(){
+ const active=inventoryParts.filter(p=>p.is_active),costByPart=new Map(inventoryCosts.map(x=>[x.part_id,x]));
+ $('inventoryList').innerHTML=active.length?active.map(p=>{
+  const cost=costByPart.get(p.id),low=Number(p.stock_quantity)<=Number(p.min_stock);
+  return '<div class="service"><div class="section-title"><h3>'+esc(p.name)+'</h3><span class="badge">'+(low?'Stok az':'Stokta')+'</span></div><p><strong>Kod:</strong> '+esc(p.part_code||'—')+' &nbsp; <strong>Marka/Model:</strong> '+esc([p.brand,p.model].filter(Boolean).join(' ')||'—')+'</p><p><strong>Stok:</strong> '+esc(p.stock_quantity)+' '+esc(p.unit||'adet')+' &nbsp; <strong>Minimum:</strong> '+esc(p.min_stock)+'</p>'+(isAdmin()?'<p><strong>Alış:</strong> '+esc(money(cost?.purchase_price||0))+' &nbsp; <strong>Satış:</strong> '+esc(money(cost?.sale_price||0))+' &nbsp; <strong>Tedarikçi:</strong> '+esc(cost?.supplier||'—')+'</p>':'')+'</div>';
+ }).join(''):'Henüz parça kaydı yok. Yönetici, aşağıdaki formdan ilk parçayı ekleyebilir.';
+ const options='<option value="">Parça seçin</option>'+active.map(p=>'<option value="'+esc(p.id)+'">'+esc(p.name)+' — stok: '+esc(p.stock_quantity)+' '+esc(p.unit||'adet')+'</option>').join('');
+ $('stockPart').innerHTML=options;
+ $('warrantyPart').innerHTML='<option value="">Depo dışı / elle parça gir</option>'+active.map(p=>'<option value="'+esc(p.id)+'">'+esc(p.name)+' — stok: '+esc(p.stock_quantity)+'</option>').join('');
+ $('stockService').innerHTML='<option value="">Servis seçilmedi</option>'+services.map(s=>'<option value="'+esc(s.id)+'">'+esc(serviceLabel(s))+'</option>').join('');
+ $('warrantyService').innerHTML='<option value="">Servis seçilmedi</option>'+services.map(s=>'<option value="'+esc(s.id)+'">'+esc(serviceLabel(s))+'</option>').join('');
+}
+async function loadInventory(){
+ const {data,error}=await supabase.from('inventory_parts').select('id,part_code,name,brand,model,unit,stock_quantity,min_stock,is_active,created_at').order('name');
+ if(error){inventoryParts=[];$('inventoryList').textContent='Depo yüklenemedi: '+error.message;setInventoryMessage('Depo tabloları okunamadı. Kurulum sorgusunu kontrol edin: '+error.message,true);return}
+ inventoryParts=data||[];inventoryCosts=[];
+ if(isAdmin()){
+  const {data:costs,error:costError}=await supabase.from('inventory_part_costs').select('part_id,purchase_price,sale_price,supplier,notes,updated_at');
+  if(costError)setInventoryMessage('Parça listesi yüklendi ancak maliyetler okunamadı: '+costError.message,true);
+  else inventoryCosts=costs||[];
+ }
+ renderInventory();
+}
+async function loadStockMovements(){
+ const {data,error}=await supabase.from('inventory_movements').select('id,part_id,movement_type,quantity,service_id,note,created_at').order('created_at',{ascending:false}).limit(30);
+ if(error){$('stockMovementHistory').textContent='Stok hareketleri okunamadı: '+error.message;return}
+ inventoryMovements=data||[];renderStockMovements();
+}
+function renderStockMovements(){
+ if(!$('stockMovementHistory'))return;
+ $('stockMovementHistory').innerHTML=inventoryMovements.length?inventoryMovements.map(m=>{
+  const p=inventoryParts.find(x=>x.id===m.part_id),s=services.find(x=>x.id===m.service_id);
+  return '<div class="service"><strong>'+esc(p?.name||'Parça')+'</strong> · '+esc(m.movement_type)+' '+esc(m.quantity)+'<p class="muted small">'+esc(m.created_at?new Date(m.created_at).toLocaleString('tr-TR'):'—')+(s?' · '+esc('Servis #'+(s.service_no??'—')):'')+(m.note?' · '+esc(m.note):'')+'</p></div>';
+ }).join(''):'Henüz stok hareketi yok.';
+}
+async function loadWarranties(){
+ const {data,error}=await supabase.from('part_warranties').select('id,warranty_no,part_id,part_name,brand,serial_number,customer_id,service_id,installed_at,warranty_months,warranty_until,status,notes,created_at').order('warranty_until',{ascending:false});
+ if(error){warranties=[];$('warrantyList').textContent='Garanti kayıtları okunamadı: '+error.message;return}
+ warranties=data||[];renderWarranties();
+}
+function displayedWarrantyStatus(w){
+ if(w.status==='İptal')return 'İptal';
+ if(w.status==='İşlemde')return 'İşlemde';
+ return w.warranty_until<dateToday()?'Sona Erdi':'Aktif';
+}
+function renderWarranties(){
+ const term=($('warrantySearch')?.value||'').trim().toLocaleLowerCase('tr-TR');
+ const rows=warranties.filter(w=>{
+  const c=customers.find(x=>x.id===w.customer_id);
+  return [warrantyNo(w),w.part_name,w.brand,w.serial_number,c?.name,w.notes].join(' ').toLocaleLowerCase('tr-TR').includes(term);
+ });
+ $('warrantyList').innerHTML=rows.length?rows.map(w=>{
+  const c=customers.find(x=>x.id===w.customer_id),s=services.find(x=>x.id===w.service_id);
+  return '<div class="service"><div class="section-title"><h3>'+esc(warrantyNo(w))+' · '+esc(w.part_name)+'</h3><span class="badge">'+esc(displayedWarrantyStatus(w))+'</span></div><p><strong>Müşteri:</strong> '+esc(c?.name||'—')+' &nbsp; <strong>Marka:</strong> '+esc(w.brand||'—')+'</p><p><strong>Montaj:</strong> '+esc(formatDate(w.installed_at))+' &nbsp; <strong>Garanti bitiş:</strong> '+esc(formatDate(w.warranty_until))+' &nbsp; <strong>Süre:</strong> '+esc(w.warranty_months)+' ay</p><p><strong>Seri no:</strong> '+esc(w.serial_number||'—')+(s?' &nbsp; <strong>Servis:</strong> '+esc('#'+(s.service_no??'—')):'')+'</p><div class="row"><button type="button" class="secondary" data-print-warranty="'+esc(w.id)+'">Garanti Etiketi Yazdır</button></div></div>';
+ }).join(''):'Eşleşen garanti kaydı bulunamadı.';
+}
+async function addInventoryPart(e){
+ e.preventDefault();
+ if(!isAdmin()){message('Yeni parça ekleme yetkisi yalnızca yöneticidedir.',true);return}
+ const name=$('newPartName').value.trim();
+ if(!name){message('Parça adı zorunludur.',true);return}
+ const payload={name,part_code:$('newPartCode').value.trim()||null,brand:$('newPartBrand').value.trim()||null,model:$('newPartModel').value.trim()||null,unit:$('newPartUnit').value,min_stock:Number($('newPartMinStock').value)||0,created_by:currentUser.id};
+ const {data,error}=await supabase.from('inventory_parts').insert(payload).select('id').single();
+ if(error){message('Parça kaydedilemedi: '+error.message,true);return}
+ const cost={part_id:data.id,purchase_price:Number($('newPartPurchasePrice').value)||0,sale_price:Number($('newPartSalePrice').value)||0,supplier:$('newPartSupplier').value.trim()||null,updated_by:currentUser.id,updated_at:new Date().toISOString()};
+ const {error:costError}=await supabase.from('inventory_part_costs').upsert(cost,{onConflict:'part_id'});
+ $('addPartForm').reset();$('newPartMinStock').value='1';$('newPartPurchasePrice').value='0';$('newPartSalePrice').value='0';
+ await loadInventory();
+ if(costError){message('Parça kaydedildi, ancak fiyatlar kaydedilemedi: '+costError.message,true);return}
+ message('Parça kaydedildi. İlk stok miktarını “Stok Giriş / Çıkış” bölümünden girin.');
+}
+async function saveStockMovement(){
+ const partId=$('stockPart').value,quantity=Number($('stockQuantity').value);
+ const direction=isAdmin()?$ ('stockMovementType').value:'Çıkış';
+ if(!partId){message('Stok hareketi için parça seçin.',true);return}
+ if(!Number.isFinite(quantity)||quantity<=0){message('Miktar 0’dan büyük olmalı.',true);return}
+ const {error}=await supabase.rpc('adjust_inventory_stock',{p_part_id:partId,p_direction:direction,p_quantity:quantity,p_note:$('stockNote').value.trim()||null,p_service_id:$('stockService').value||null});
+ if(error){message('Stok hareketi kaydedilemedi: '+error.message,true);return}
+ $('stockQuantity').value='1';$('stockNote').value='';
+ await loadInventory();await loadStockMovements();message(direction==='Giriş'?'Depoya stok girişi kaydedildi.':'Stok çıkışı kaydedildi.');
+}
+function updateWarrantyPreview(){
+ const installed=$('warrantyInstalledAt').value,months=Number($('warrantyMonths').value);
+ $('warrantyUntilPreview').value=installed&&months>0?dateAddMonths(installed,months):'';
+}
+function onWarrantyPartChange(){
+ const id=$('warrantyPart').value;
+ if(!id)return;
+ const p=inventoryParts.find(x=>x.id===id);
+ if(p){$('warrantyPartName').value=p.name||'';$('warrantyBrand').value=p.brand||'';}
+}
+async function addWarranty(e){
+ e.preventDefault();
+ const customerId=$('warrantyCustomer').value,partId=$('warrantyPart').value||null;
+ const partName=$('warrantyPartName').value.trim(),months=Number($('warrantyMonths').value),installed=$('warrantyInstalledAt').value;
+ if(!customerId||!partName||!installed||!Number.isInteger(months)||months<1||months>240){message('Müşteri, parça adı, montaj tarihi ve geçerli garanti süresi zorunludur.',true);return}
+ const selectedService=$('warrantyService').value;
+ if(selectedService){
+  const linkedService=services.find(s=>s.id===selectedService);
+  if(linkedService&&linkedService.customer_id!==customerId){message('Seçilen servis bu müşteriye ait değil. Müşteri ve servisi kontrol edin.',true);return}
+ }
+ const args={p_part_id:partId,p_part_name:partName,p_brand:$('warrantyBrand').value.trim()||null,p_serial_number:$('warrantySerial').value.trim()||null,p_customer_id:customerId,p_service_id:selectedService||null,p_installed_at:installed,p_warranty_months:months,p_notes:$('warrantyNotes').value.trim()||null};
+ $('saveWarrantyButton').disabled=true;
+ const {error}=await supabase.rpc('install_part_warranty',args);
+ $('saveWarrantyButton').disabled=false;
+ if(error){message('Garanti kaydı oluşturulamadı: '+error.message,true);return}
+ $('warrantyForm').reset();$('warrantyInstalledAt').value=dateToday();$('warrantyMonths').value='24';updateWarrantyPreview();
+ await loadWarranties();await loadInventory();await loadStockMovements();
+ message('Garanti kaydı oluşturuldu. Garanti Kayıtları bölümünden etiketi yazdırabilirsiniz.');
+}
+function printWarrantyLabel(id){
+ const w=warranties.find(x=>x.id===id);
+ if(!w){message('Garanti kaydı bulunamadı.',true);return}
+ const customer=customers.find(x=>x.id===w.customer_id),code=warrantyNo(w);
+ const qr='https://api.qrserver.com/v1/create-qr-code/?size=140x140&data='+encodeURIComponent(code);
+ const html='<!doctype html><html lang="tr"><head><meta charset="utf-8"><title>'+esc(code)+'</title><style>@page{size:50mm 30mm;margin:1mm}*{box-sizing:border-box}body{font:7pt Arial,sans-serif;margin:0;color:#111;width:48mm;height:28mm;overflow:hidden}.label{display:flex;gap:2mm;width:48mm;height:28mm;align-items:center}.qr{width:20mm;height:20mm;object-fit:contain}.data{flex:1;min-width:0;overflow-wrap:anywhere}.name{font-weight:bold;font-size:8pt;line-height:1.1;margin-bottom:1mm}.line{margin:.5mm 0;font-size:6.5pt}.code{font-weight:bold;font-size:8pt;margin-top:1mm}</style></head><body><div class="label"><img class="qr" src="'+qr+'" alt="QR"><div class="data"><div class="name">'+esc(w.part_name)+'</div><div class="line">'+esc(customer?.name||'Müşteri')+'</div><div class="line">Montaj: '+esc(formatDate(w.installed_at))+'</div><div class="line">Bitiş: '+esc(formatDate(w.warranty_until))+'</div><div class="code">'+esc(code)+'</div></div></div><script>window.addEventListener("load",()=>{const img=document.querySelector("img");const go=()=>setTimeout(()=>window.print(),300);if(img.complete)go();else{img.onload=go;img.onerror=go;setTimeout(go,2500)}});<\/script></body></html>';
+ const win=window.open('','_blank');
+ if(!win){message('Etiket yazdırmak için tarayıcıda açılır pencerelere izin verin.',true);return}
+ win.document.open();win.document.write(html);win.document.close();
+ message('Garanti etiketi açıldı. Yazdır penceresinde etiket yazıcısını veya PDF olarak kaydet seçeneğini seçebilirsiniz.');
 }
 
 function money(value){return new Intl.NumberFormat('tr-TR',{style:'currency',currency:'TRY'}).format(Number(value)||0)}
@@ -411,14 +611,16 @@ document.addEventListener('click',event=>{
  if(statusButton){event.preventDefault();saveStatus(statusButton.dataset.saveStatus);return}
  const techButton=target.closest('[data-save-tech]');
  if(techButton){event.preventDefault();saveTechnician(techButton.dataset.saveTech);return}
+ const warrantyButton=target.closest('[data-print-warranty]');
+ if(warrantyButton){event.preventDefault();printWarrantyLabel(warrantyButton.dataset.printWarranty);return}
  const pdfButton=target.closest('[data-pdf-service]');
  if(pdfButton){event.preventDefault();printServiceForm(pdfButton.dataset.pdfService)}
 });
 $('loginForm').addEventListener('submit',async e=>{e.preventDefault();$('loginButton').disabled=true;message('Giriş yapılıyor...');const {data,error}=await supabase.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});$('loginButton').disabled=false;if(error){message('Giriş yapılamadı: '+error.message,true);return}await showApp(data.user);});
 $('logoutButton').addEventListener('click',async()=>{const {error}=await supabase.auth.signOut();if(error){message(error.message,true);return}currentUser=null;currentProfile=null;showLogin();message('Çıkış yapıldı.')});
 $('customerForm').addEventListener('submit',saveCustomer);$('serviceForm').addEventListener('submit',saveService);$('cancelEditServiceButton').addEventListener('click',()=>{ $('serviceForm').reset();$('serviceDate').value=dateToday();$('serviceStatus').value='Bekliyor';resetServiceEditMode();message('Düzenleme iptal edildi. Yeni servis kaydı oluşturabilirsiniz.');});
-$('showServicesPage').addEventListener('click',()=>showAppPage('services'));$('showManagementPage').addEventListener('click',()=>showAppPage('management'));$('refreshButton').addEventListener('click',loadAll);$('filterStatus').addEventListener('change',renderServices);$('searchService').addEventListener('input',renderServices);
-$('toggleCustomer').addEventListener('click',()=>$('customerForm').classList.toggle('hidden'));
+$('showServicesPage').addEventListener('click',()=>showAppPage('services'));$('showInventoryPage').addEventListener('click',()=>showAppPage('inventory'));$('showManagementPage').addEventListener('click',()=>showAppPage('management'));$('refreshButton').addEventListener('click',loadAll);$('refreshInventoryButton').addEventListener('click',async()=>{await loadInventory();await loadStockMovements();await loadWarranties()});$('filterStatus').addEventListener('change',renderServices);$('searchService').addEventListener('input',renderServices);
+$('toggleCustomer').addEventListener('click',()=>$('customerForm').classList.toggle('hidden'));$('addPartForm').addEventListener('submit',addInventoryPart);$('saveStockMovementButton').addEventListener('click',saveStockMovement);$('warrantyForm').addEventListener('submit',addWarranty);$('warrantyPart').addEventListener('change',onWarrantyPartChange);$('warrantyInstalledAt').value=dateToday();$('warrantyInstalledAt').addEventListener('change',updateWarrantyPreview);$('warrantyMonths').addEventListener('input',updateWarrantyPreview);$('warrantySearch').addEventListener('input',renderWarranties);
 $('financeService').addEventListener('change',renderSelectedFinance);
 $('saveFinanceButton').addEventListener('click',saveFinance);
 $('addPaymentButton').addEventListener('click',addPayment);
