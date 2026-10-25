@@ -165,7 +165,8 @@ async function loadCustomers(){
  $('customers').innerHTML=customers.length?customers.map(c=>'<div class="service"><strong>'+esc(c.name)+'</strong><p>'+esc(c.phone)+'</p><p>'+esc(c.address)+'</p><p class="muted">'+esc(c.notes)+'</p></div>').join(''):'Henüz müşteri kaydı yok.';
 }
 async function loadTechnicians(){
- const {data,error}=await supabase.from('profiles').select('id,full_name,role').eq('role','technician').order('full_name');
+ // Bir kullanıcı hem yönetici hem sahada teknisyen olarak görev yapabilir.
+ const {data,error}=await supabase.from('profiles').select('id,full_name,role,is_technician').or('role.eq.technician,is_technician.eq.true').order('full_name');
  if(error){technicians=[];$('technician').innerHTML='<option value="">Teknisyen listesi okunamadı</option>';message('Teknisyen listesi okunamadı: '+error.message,true);return}
  technicians=data||[];
  $('technician').innerHTML='<option value="">Teknisyen seçin</option>'+technicians.map(t=>'<option value="'+esc(t.id)+'">'+esc(t.full_name||t.id)+'</option>').join('');
