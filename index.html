@@ -162,10 +162,11 @@ function renderServices(){
  $('serviceList').innerHTML=list.map(s=>{
  const c=customers.find(x=>x.id===s.customer_id),t=technicians.find(x=>x.id===s.technician_id);
  const editStatus='<label>Durumu güncelle</label><select data-status="'+esc(s.id)+'">'+Object.entries(statusLabels).map(([v,l])=>'<option value="'+v+'" '+(s.status===v?'selected':'')+'>'+l+'</option>').join('')+'</select><button class="secondary" data-save-status="'+esc(s.id)+'">Durumu Kaydet</button>';
- return '<article class="service"><div class="section-title"><h3>Servis #'+esc(s.service_no??'—')+' · '+esc(c?.name||'Müşteri bulunamadı')+'</h3><span class="badge">'+esc(statusLabels[s.status]||s.status||'Durum yok')+'</span></div><p><strong>Tarih:</strong> '+esc(s.service_date||'—')+' &nbsp; <strong>Teknisyen:</strong> '+esc(t?.full_name||(s.technician_id?'Atanmış kullanıcı':'Atanmadı'))+'</p><p><strong>Kombi:</strong> '+esc([s.boiler_brand,s.boiler_model].filter(Boolean).join(' ')||'Belirtilmedi')+' &nbsp; <strong>Arıza kodu:</strong> '+esc(s.error_code||'—')+'</p><p><strong>Arıza:</strong> '+esc(s.problem||'—')+'</p><p><strong>Yapılan işlem:</strong> '+esc(s.work_done||'—')+'</p><p><strong>Parça/not:</strong> '+esc(s.parts_note||'—')+'</p><div class="grid"><div>'+editStatus+'</div>'+(isAdmin()?'<div><label>Teknisyen ata</label><select data-tech="'+esc(s.id)+'"><option value="">Atanmadı</option>'+technicians.map(t=>'<option value="'+esc(t.id)+'" '+(t.id===s.technician_id?'selected':'')+'>'+esc(t.full_name||t.id)+'</option>').join('')+'</select><button class="secondary" data-save-tech="'+esc(s.id)+'">Atamayı Kaydet</button></div>':'')+'</div></article>';
+ return '<article class="service"><div class="section-title"><h3>Servis #'+esc(s.service_no??'—')+' · '+esc(c?.name||'Müşteri bulunamadı')+'</h3><span class="badge">'+esc(statusLabels[s.status]||s.status||'Durum yok')+'</span></div><p><strong>Tarih:</strong> '+esc(s.service_date||'—')+' &nbsp; <strong>Teknisyen:</strong> '+esc(t?.full_name||(s.technician_id?'Atanmış kullanıcı':'Atanmadı'))+'</p><p><strong>Kombi:</strong> '+esc([s.boiler_brand,s.boiler_model].filter(Boolean).join(' ')||'Belirtilmedi')+' &nbsp; <strong>Arıza kodu:</strong> '+esc(s.error_code||'—')+'</p><p><strong>Arıza:</strong> '+esc(s.problem||'—')+'</p><p><strong>Yapılan işlem:</strong> '+esc(s.work_done||'—')+'</p><p><strong>Parça/not:</strong> '+esc(s.parts_note||'—')+'</p><div class="row"><button type="button" class="secondary" data-pdf-service="'+esc(s.id)+'">Servis Formu / PDF</button></div><div class="grid"><div>'+editStatus+'</div>'+(isAdmin()?'<div><label>Teknisyen ata</label><select data-tech="'+esc(s.id)+'"><option value="">Atanmadı</option>'+technicians.map(t=>'<option value="'+esc(t.id)+'" '+(t.id===s.technician_id?'selected':'')+'>'+esc(t.full_name||t.id)+'</option>').join('')+'</select><button class="secondary" data-save-tech="'+esc(s.id)+'">Atamayı Kaydet</button></div>':'')+'</div></article>';
  }).join('');
- $$('[data-save-status]').forEach(b=>b.addEventListener('click',()=>saveStatus(b.dataset.saveStatus)));
- $$('[data-save-tech]').forEach(b=>b.addEventListener('click',()=>saveTechnician(b.dataset.saveTech)));
+ $('[data-save-status]').forEach(b=>b.addEventListener('click',()=>saveStatus(b.dataset.saveStatus)));
+ $('[data-save-tech]').forEach(b=>b.addEventListener('click',()=>saveTechnician(b.dataset.saveTech)));
+ $('[data-pdf-service]').forEach(b=>b.addEventListener('click',()=>printServiceForm(b.dataset.pdfService)));
 }
 async function saveCustomer(e){
  e.preventDefault();const payload={name:$('customerName').value.trim(),phone:$('customerPhone').value.trim()||null,address:$('customerAddress').value.trim()||null,notes:$('customerNotes').value.trim()||null,created_by:currentUser.id};
@@ -260,6 +261,40 @@ function renderPayments(){
  }).join('');
 }
 
+function printServiceForm(id){
+ const s=services.find(item=>item.id===id);
+ if(!s){message('Servis kaydı bulunamadı. Listeyi yenileyin.',true);return}
+ const c=customers.find(item=>item.id===s.customer_id)||{};
+ const t=technicians.find(item=>item.id===s.technician_id)||{};
+ const displayDate=s.service_date?s.service_date.split('-').reverse().join('.'):'—';
+ const reportWindow=window.open('','_blank');
+ if(!reportWindow){message('Servis formu açılamadı. Tarayıcıda açılır pencerelere izin verin.',true);return}
+ const reportHtml=`<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Servis Formu - ${esc(s.service_no??'')}</title><style>
+ @page{size:A4;margin:14mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#172033;margin:0;font-size:12px;line-height:1.45}.toolbar{display:flex;justify-content:flex-end;margin-bottom:12px}.toolbar button{padding:9px 14px;background:#0f766e;color:white;border:0;border-radius:5px;font-size:13px;cursor:pointer}.header{border-bottom:3px solid #0f766e;padding-bottom:12px;margin-bottom:16px;display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.header h1{margin:0;font-size:22px;color:#0f766e}.header p{margin:4px 0 0;color:#64748b}.ref{text-align:right;font-size:12px}.ref strong{font-size:15px}.section{margin:12px 0 0;border:1px solid #cbd5e1;border-radius:5px;overflow:hidden;break-inside:avoid}.section h2{font-size:12px;letter-spacing:.3px;margin:0;padding:7px 9px;background:#f1f5f9;border-bottom:1px solid #cbd5e1;text-transform:uppercase}.body{padding:9px;min-height:38px;white-space:pre-wrap;overflow-wrap:anywhere}.grid{display:grid;grid-template-columns:1fr 1fr}.field{padding:8px 9px;border-bottom:1px solid #e2e8f0;min-height:42px}.field:nth-child(odd){border-right:1px solid #e2e8f0}.label{display:block;color:#64748b;font-size:10px;text-transform:uppercase;margin-bottom:3px}.value{font-weight:600;overflow-wrap:anywhere}.empty{color:#64748b;font-weight:400}.signatures{display:grid;grid-template-columns:1fr 1fr;gap:26px;margin-top:36px;break-inside:avoid}.sign{border-top:1px solid #64748b;padding-top:7px;min-height:38px;text-align:center}.declaration{margin-top:18px;color:#475569;font-size:10px}.footer{margin-top:18px;padding-top:8px;border-top:1px solid #cbd5e1;color:#64748b;font-size:9px;display:flex;justify-content:space-between;gap:8px}.no-print{display:block}@media print{.no-print{display:none!important}body{font-size:11px}.section{break-inside:avoid}.header h1{font-size:20px}}@media(max-width:500px){.grid{grid-template-columns:1fr}.field:nth-child(odd){border-right:0}.header{flex-direction:column}.ref{text-align:left}}
+ </style></head><body><div class="toolbar no-print"><button onclick="window.print()">Yazdır / PDF olarak kaydet</button></div>
+ <header class="header"><div><h1>KOMBİ SERVİS FORMU</h1><p>Teknik servis müdahale raporu</p></div><div class="ref"><div>Servis No</div><strong>#${esc(s.service_no??'—')}</strong><div style="margin-top:5px">Tarih: ${esc(displayDate)}</div><div>Durum: ${esc(statusLabels[s.status]||s.status||'—')}</div></div></header>
+ <section class="section"><h2>Müşteri Bilgileri</h2><div class="grid">
+ <div class="field"><span class="label">Ad Soyad</span><div class="value">${esc(c.name||'—')}</div></div>
+ <div class="field"><span class="label">Telefon</span><div class="value">${esc(c.phone||'—')}</div></div>
+ <div class="field" style="grid-column:1/-1;border-right:0"><span class="label">Adres</span><div class="value">${esc(c.address||'—')}</div></div>
+ </div></section>
+ <section class="section"><h2>Cihaz Bilgileri</h2><div class="grid">
+ <div class="field"><span class="label">Kombi Markası</span><div class="value">${esc(s.boiler_brand||'—')}</div></div>
+ <div class="field"><span class="label">Kombi Modeli</span><div class="value">${esc(s.boiler_model||'—')}</div></div>
+ <div class="field"><span class="label">Arıza Kodu</span><div class="value">${esc(s.error_code||'—')}</div></div>
+ <div class="field"><span class="label">Görevli Teknisyen</span><div class="value">${esc(t.full_name||(s.technician_id?'Atanmış kullanıcı':'Atanmadı'))}</div></div>
+ </div></section>
+ <section class="section"><h2>Müşterinin Bildirdiği Arıza</h2><div class="body">${esc(s.problem||'Belirtilmedi')}</div></section>
+ <section class="section"><h2>Yapılan Kontrol ve İşlemler</h2><div class="body" style="min-height:85px">${esc(s.work_done||'Belirtilmedi')}</div></section>
+ <section class="section"><h2>Kullanılan Parçalar / Ek Notlar</h2><div class="body" style="min-height:55px">${esc(s.parts_note||'Belirtilmedi')}</div></section>
+ <p class="declaration">Yukarıda belirtilen servis işlemi ve açıklamalar tarafıma bildirilmiştir.</p>
+ <div class="signatures"><div class="sign">Teknisyen Adı / İmza<br>${esc(t.full_name||'')}</div><div class="sign">Müşteri Adı / İmza</div></div>
+ <div class="footer"><span>Kombi Servis Formu</span><span>Oluşturulma: ${esc(new Date().toLocaleString('tr-TR'))}</span></div>
+ <script>window.addEventListener('load',()=>setTimeout(()=>{window.focus();window.print()},350));<\/script>
+ </body></html>`;
+ reportWindow.document.open();reportWindow.document.write(reportHtml);reportWindow.document.close();
+ message('Servis formu yeni sekmede açılıyor. Yazdır penceresinde “PDF olarak kaydet” seçebilirsiniz.');
+}
 async function saveStatus(id){
  const el=document.querySelector('[data-status="'+CSS.escape(id)+'"]');
  if(!el){message('Durum seçimi bulunamadı. Sayfayı yenileyip tekrar deneyin.',true);return}
