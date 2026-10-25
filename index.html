@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0f766e">
+  <title>Kombi Servis Takip</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f1f5f9;
+      color: #1e293b;
+    }
+    header {
+      background: #0f766e;
+      color: white;
+      padding: 20px;
+    }
+    header h1 { margin: 0 0 6px; font-size: 24px; }
+    header p { margin: 0; }
+    main {
+      max-width: 900px;
+      margin: 25px auto;
+      padding: 0 16px;
+    }
+    .card {
+      background: white;
+      padding: 22px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px #0000000d;
+    }
+    input, button {
+      width: 100%;
+      padding: 12px;
+      margin: 7px 0;
+      border-radius: 7px;
+      font-size: 16px;
+    }
+    input { border: 1px solid #cbd5e1; }
+    button {
+      background: #0f766e;
+      color: white;
+      border: 0;
+      cursor: pointer;
+    }
+    button:disabled { opacity: .6; }
+    .hidden { display: none; }
+    .muted { color: #64748b; }
+    .customer {
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 12px;
+      margin-top: 10px;
+    }
+    #message { white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🔧 Kombi Servis Takip</h1>
+    <p>Müşteri ve teknik servis yönetimi</p>
+  </header>
+
+  <main>
+    <section id="login" class="card">
+      <h2>Giriş Yap</h2>
+      <p class="muted">Servis sistemine kayıtlı e-posta adresinle giriş yap.</p>
+      <form id="loginForm">
+        <input id="email" type="email" placeholder="E-posta adresi" required>
+        <input id="password" type="password" placeholder="Şifre" required>
+        <button id="loginButton" type="submit">Giriş Yap</button>
+      </form>
+    </section>
+
+    <section id="app" class="hidden">
+      <div class="card">
+        <h2>Hoş geldin</h2>
+        <p id="userInfo"></p>
+        <p id="roleInfo" class="muted"></p>
+        <button id="logoutButton">Güvenli Çıkış</button>
+      </div>
+
+      <div class="card">
+        <h2>Müşteri Ekle</h2>
+        <form id="customerForm">
+          <input id="customerName" placeholder="Müşteri adı soyadı" required>
+          <input id="customerPhone" placeholder="Telefon">
+          <input id="customerAddress" placeholder="Adres">
+          <input id="customerNotes" placeholder="Notlar">
+          <button type="submit">Müşteriyi Kaydet</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <h2>Müşteri Listesi</h2>
+        <button id="refreshButton">Listeyi Yenile</button>
+        <div id="customers"></div>
+      </div>
+
+      <div class="card">
+        <h2>Servis ve Finans</h2>
+        <p class="muted">
+          Bu bölümler, mevcut veritabanı sütunları ve yetkiler
+          doğrulandıktan sonra etkinleştirilecek.
+        </p>
+      </div>
+    </section>
+
+    <section class="card">
+      <p id="message" role="status" aria-live="polite"></p>
+    </section>
+  </main>
+
+  <script type="module">
+    import { createClient } from
+      'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+    const SUPABASE_URL = 'https://iqpwltycxnpuechpvyqb.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_1t2uuoDh5xCKkeBCMAfFCw_Z-CgewVQ';
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+    const $ = id => document.getElementById(id);
+
+    function showMessage(text) {
+      $('message').textContent = text;
+    }
+
+    function escapeHTML(value) {
+      return String(value ?? '').replace(/[&<>"']/g, char => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+      })[char]);
+    }
+
+    async function updateScreen() {
+      const { data: { session } } = await supabase.auth.getSession();
+
+      $('login').classList.toggle('hidden', !!session);
+      $('app').classList.toggle('hidden', !session);
+
+      if (!session) return;
+
+      $('userInfo').textContent = session.user.email;
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('full_name, role')
+        .eq('id', session.user.id)
+        .maybeSingle();
+
+      if (error) {
+        showMessage('Kullanıcı bilgisi okunamadı: ' + error.message);
+        return;
+      }
+
+      $('roleInfo').textContent =
+        profile ? `Rol: ${profile.role}` : 'Kullanıcı profili bulunamadı.';
+
+      await loadCustomers();
+    }
+
+    $('loginForm').addEventListener('submit', async event => {
+      event.preventDefault();
+      $('loginButton').disabled = true;
+      showMessage('Giriş yapılıyor...');
+
+      try {
+        const { error } = await supabase.auth.signInWithPassword({
+          email: $('email').value.trim(),
+          password: $('password').value
+        });
+
+        if (error) throw error;
+
+        showMessage('Giriş başarılı.');
+        await updateScreen();
+      } catch (error) {
+        showMessage('Giriş yapılamadı: ' + error.message);
+      } finally {
+        $('loginButton').disabled = false;
+      }
+    });
+
+    $('logoutButton').addEventListener('click', async () => {
+      const { error } = await supabase.auth.signOut();
+      if (error) showMessage(error.message);
+      else {
+        showMessage('Çıkış yapıldı.');
+        await updateScreen();
+      }
+    });
+
+    async function loadCustomers() {
+      const container = $('customers');
+      container.textContent = 'Müşteriler yükleniyor...';
+
+      const { data, error } = await supabase
+        .from('customers')
+        .select('id, name, phone, address, notes')
+        .order('name');
+
+      if (error) {
+        container.textContent = 'Müşteriler okunamadı: ' + error.message;
+        return;
+      }
+
+      container.innerHTML = '';
+
+      if (!data || data.length === 0) {
+        container.textContent = 'Henüz müşteri kaydı yok.';
+        return;
+      }
+
+      for (const customer of data) {
+        const item = document.createElement('div');
+        item.className = 'customer';
+        item.innerHTML = `
+          <strong>${escapeHTML(customer.name)}</strong>
+          <div>${escapeHTML(customer.phone)}</div>
+          <div>${escapeHTML(customer.address)}</div>
+          <div class="muted">${escapeHTML(customer.notes)}</div>
+        `;
+        container.appendChild(item);
+      }
+    }
+
+    $('customerForm').addEventListener('submit', async event => {
+      event.preventDefault();
+      showMessage('Müşteri kaydediliyor...');
+
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user) {
+        showMessage('Önce giriş yapmalısın.');
+        return;
+      }
+
+      const customer = {
+        name: $('customerName').value.trim(),
+        phone: $('customerPhone').value.trim(),
+        address: $('customerAddress').value.trim(),
+        notes: $('customerNotes').value.trim(),
+        created_by: user.id
+      };
+
+      const { error } = await supabase
+        .from('customers')
+        .insert(customer);
+
+      if (error) {
+        showMessage('Müşteri kaydedilemedi: ' + error.message);
+        return;
+      }
+
+      $('customerForm').reset();
+      showMessage('Müşteri başarıyla kaydedildi.');
+      await loadCustomers();
+    });
+
+    $('refreshButton').addEventListener('click', loadCustomers);
+
+    supabase.auth.onAuthStateChange(() => {
+      setTimeout(() => updateScreen(), 0);
+    });
+
+    updateScreen();
+  </script>
+</body>
+</html>
