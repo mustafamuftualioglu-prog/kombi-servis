@@ -22,16 +22,12 @@
 </section>
 <div id="app" class="hidden">
 <div class="card"><div class="section-title"><div><strong id="userInfo"></strong><div id="roleInfo" class="muted small"></div></div><button id="logoutButton" class="secondary" style="width:auto">Güvenli Çıkış</button></div></div>
-<div class="card admin-only" id="dashboardSection">
-  <div class="section-title"><h2>📊 Yönetici Özeti</h2><span class="muted small" id="dashboardDate"></span></div>
-  <div class="grid">
-    <div class="service"><div class="muted small">Bugünkü servisler</div><h2 id="dashTodayServices">0</h2></div>
-    <div class="service"><div class="muted small">Bugünkü tahsilat</div><h2 id="dashTodayCollections">₺0,00</h2></div>
-    <div class="service"><div class="muted small">Bekleyen / işlemde işler</div><h2 id="dashOpenServices">0</h2></div>
-    <div class="service"><div class="muted small">Toplam kalan alacak</div><h2 id="dashReceivables">₺0,00</h2></div>
-  </div>
-  <p class="muted small">Özet, kayıtlı servis ve tahsilat bilgilerine göre hesaplanır. Güncel verileri görmek için “Listeyi Yenile” düğmesini kullan.</p>
-</div>
+
+<nav class="card row app-nav" aria-label="Uygulama bölümleri">
+  <button type="button" id="showServicesPage">🔧 Servis ve Müşteriler</button>
+  <button type="button" id="showManagementPage" class="secondary admin-only">🔒 Yönetim / Finans</button>
+</nav>
+<div id="servicesPage">
 <section class="card">
 <div class="section-title"><h2>Müşteri Ekle</h2><button type="button" id="toggleCustomer" class="secondary" style="width:auto">Formu Aç/Kapat</button></div>
 <form id="customerForm">
@@ -62,6 +58,19 @@
 <div id="serviceList" class="muted">Servis kayıtları yükleniyor...</div>
 </section>
 
+<section class="card"><h2>Müşteriler</h2><div id="customers" class="muted">Müşteriler yükleniyor...</div></section>
+</div>
+<div id="managementPage" class="hidden">
+<div class="card admin-only" id="dashboardSection">
+  <div class="section-title"><h2>📊 Yönetici Özeti</h2><span class="muted small" id="dashboardDate"></span></div>
+  <div class="grid">
+    <div class="service"><div class="muted small">Bugünkü servisler</div><h2 id="dashTodayServices">0</h2></div>
+    <div class="service"><div class="muted small">Bugünkü tahsilat</div><h2 id="dashTodayCollections">₺0,00</h2></div>
+    <div class="service"><div class="muted small">Bekleyen / işlemde işler</div><h2 id="dashOpenServices">0</h2></div>
+    <div class="service"><div class="muted small">Toplam kalan alacak</div><h2 id="dashReceivables">₺0,00</h2></div>
+  </div>
+  <p class="muted small">Özet, kayıtlı servis ve tahsilat bilgilerine göre hesaplanır. Güncel verileri görmek için “Listeyi Yenile” düğmesini kullan.</p>
+</div>
 <section class="card admin-only" id="financeSection">
   <h2>💰 Finans Takibi <span class="badge">Yalnızca yönetici</span></h2>
   <p class="muted small">Servis ücretlerini, tahsilatları ve kalan alacakları buradan yönetin. Tutarlar TL'dir.</p>
@@ -99,7 +108,9 @@
   <div id="paymentList" class="muted">Tahsilatlar yükleniyor...</div>
   <p class="muted small">* Tahmini brüt kazanç = işçilik + parça satışı + yol ücreti − parça maliyeti − yol gideri. İşçilik/personel maliyeti dahil değildir.</p>
 </section>
-<section class="card"><h2>Müşteriler</h2><div id="customers" class="muted">Müşteriler yükleniyor...</div></section>
+
+</div>
+
 </div>
 <div id="message" class="notice" role="status" aria-live="polite"></div>
 </main>
@@ -115,7 +126,18 @@ function message(text,isError=false){$('message').textContent=text;$('message').
 function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function isAdmin(){return currentProfile?.role==='admin'}
 function dateToday(){return new Date().toLocaleDateString('en-CA')}
-function applyRoleUI(){$$('.admin-only').forEach(el=>el.classList.toggle('hidden',!isAdmin()));$('roleInfo').textContent=isAdmin()?'Yönetici':'Teknisyen';}
+function applyRoleUI(){$('.admin-only').forEach(el=>el.classList.toggle('hidden',!isAdmin()));$('roleInfo').textContent=isAdmin()?'Yönetici':'Teknisyen';}
+
+function showAppPage(page){
+ const showManagement=page==='management'&&isAdmin();
+ $('servicesPage').classList.toggle('hidden',showManagement);
+ $('managementPage').classList.toggle('hidden',!showManagement);
+ $('showServicesPage').classList.toggle('secondary',showManagement);
+ if(isAdmin())$('showManagementPage').classList.toggle('secondary',!showManagement);
+ if(showManagement)$('managementPage').scrollIntoView({behavior:'smooth',block:'start'});
+ else $('servicesPage').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
 function $$(selector){return [...document.querySelectorAll(selector)]}
 async function init(){
  const {data:{session},error}=await supabase.auth.getSession();
@@ -131,7 +153,7 @@ async function showApp(user){
  currentProfile=profile;
  $('login').classList.add('hidden');$('app').classList.remove('hidden');
  $('userInfo').textContent=profile.full_name||user.email;$('headerUser').textContent=user.email;
- applyRoleUI();$('serviceDate').value=dateToday();
+ applyRoleUI();showAppPage('services');$('serviceDate').value=dateToday();
  await loadAll();
 }
 async function loadAll(){await loadCustomers();await loadTechnicians();await loadServices();if(isAdmin())await loadFinance();}
@@ -394,7 +416,7 @@ document.addEventListener('click',event=>{
 $('loginForm').addEventListener('submit',async e=>{e.preventDefault();$('loginButton').disabled=true;message('Giriş yapılıyor...');const {data,error}=await supabase.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});$('loginButton').disabled=false;if(error){message('Giriş yapılamadı: '+error.message,true);return}await showApp(data.user);});
 $('logoutButton').addEventListener('click',async()=>{const {error}=await supabase.auth.signOut();if(error){message(error.message,true);return}currentUser=null;currentProfile=null;showLogin();message('Çıkış yapıldı.')});
 $('customerForm').addEventListener('submit',saveCustomer);$('serviceForm').addEventListener('submit',saveService);$('cancelEditServiceButton').addEventListener('click',()=>{ $('serviceForm').reset();$('serviceDate').value=dateToday();$('serviceStatus').value='Bekliyor';resetServiceEditMode();message('Düzenleme iptal edildi. Yeni servis kaydı oluşturabilirsiniz.');});
-$('refreshButton').addEventListener('click',loadAll);$('filterStatus').addEventListener('change',renderServices);$('searchService').addEventListener('input',renderServices);
+$('showServicesPage').addEventListener('click',()=>showAppPage('services'));$('showManagementPage').addEventListener('click',()=>showAppPage('management'));$('refreshButton').addEventListener('click',loadAll);$('filterStatus').addEventListener('change',renderServices);$('searchService').addEventListener('input',renderServices);
 $('toggleCustomer').addEventListener('click',()=>$('customerForm').classList.toggle('hidden'));
 $('financeService').addEventListener('change',renderSelectedFinance);
 $('saveFinanceButton').addEventListener('click',saveFinance);
