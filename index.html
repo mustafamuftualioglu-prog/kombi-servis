@@ -107,7 +107,7 @@ const supabase=createClient(SUPABASE_URL,SUPABASE_KEY);
 const $=id=>document.getElementById(id);
 let currentUser=null,currentProfile=null,customers=[],technicians=[],services=[],financeRows=[],payments=[];
 const statusLabels={'Bekliyor':'Bekliyor','İşlemde':'İşlemde','Tamamlandı':'Tamamlandı','İptal':'İptal'};
-function message(text,isError=false){$('message').textContent=text;$('message').classList.toggle('error',isError)}
+function message(text,isError=false){$('message').textContent=text;$('message').classList.toggle('error',isError);$('message').scrollIntoView({behavior:'smooth',block:'center'})}
 function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function isAdmin(){return currentProfile?.role==='admin'}
 function dateToday(){return new Date().toLocaleDateString('en-CA')}
