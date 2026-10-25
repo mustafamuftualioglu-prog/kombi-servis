@@ -18,6 +18,16 @@
 </section>
 <div id="app" class="hidden">
 <div class="card"><div class="section-title"><div><strong id="userInfo"></strong><div id="roleInfo" class="muted small"></div></div><button id="logoutButton" class="secondary" style="width:auto">Güvenli Çıkış</button></div></div>
+<div class="card admin-only" id="dashboardSection">
+  <div class="section-title"><h2>📊 Yönetici Özeti</h2><span class="muted small" id="dashboardDate"></span></div>
+  <div class="grid">
+    <div class="service"><div class="muted small">Bugünkü servisler</div><h2 id="dashTodayServices">0</h2></div>
+    <div class="service"><div class="muted small">Bugünkü tahsilat</div><h2 id="dashTodayCollections">₺0,00</h2></div>
+    <div class="service"><div class="muted small">Bekleyen / işlemde işler</div><h2 id="dashOpenServices">0</h2></div>
+    <div class="service"><div class="muted small">Toplam kalan alacak</div><h2 id="dashReceivables">₺0,00</h2></div>
+  </div>
+  <p class="muted small">Özet, kayıtlı servis ve tahsilat bilgilerine göre hesaplanır. Güncel verileri görmek için “Listeyi Yenile” düğmesini kullan.</p>
+</div>
 <section class="card">
 <div class="section-title"><h2>Müşteri Ekle</h2><button type="button" id="toggleCustomer" class="secondary" style="width:auto">Formu Aç/Kapat</button></div>
 <form id="customerForm">
@@ -140,7 +150,7 @@ async function loadServices(){
  let q=supabase.from('service_orders').select('id,service_no,customer_id,technician_id,service_date,status,boiler_brand,boiler_model,error_code,problem,work_done,parts_note,created_by,created_at').order('service_date',{ascending:false});
  const {data,error}=await q;
  if(error){$('serviceList').textContent='Servis kayıtları okunamadı: '+error.message;return}
- services=data||[];renderServices();
+ services=data||[];renderServices();updateDashboard();
 }
 function renderServices(){
  const filter=$('filterStatus').value,term=$('searchService').value.trim().toLocaleLowerCase('tr-TR');
@@ -179,12 +189,24 @@ function serviceLabel(s){const c=customers.find(x=>x.id===s.customer_id);return 
 function financeFor(serviceId){return financeRows.find(x=>x.service_id===serviceId)||{service_id:serviceId,labor_amount:0,parts_amount:0,parts_cost:0,travel_amount:0,travel_cost:0}}
 function totalFor(serviceId){const f=financeFor(serviceId);return Number(f.labor_amount||0)+Number(f.parts_amount||0)+Number(f.travel_amount||0)}
 function paidFor(serviceId){return payments.filter(p=>p.service_id===serviceId).reduce((sum,p)=>sum+Number(p.amount||0),0)}
+function updateDashboard(){
+ if(!isAdmin())return;
+ const today=dateToday();
+ $('dashboardDate').textContent='Tarih: '+new Date().toLocaleDateString('tr-TR');
+ $('dashTodayServices').textContent=services.filter(s=>s.service_date===today).length.toLocaleString('tr-TR');
+ const todayCollections=payments.filter(p=>p.payment_date&&new Date(p.payment_date).toLocaleDateString('en-CA')===today).reduce((sum,p)=>sum+Number(p.amount||0),0);
+ $('dashTodayCollections').textContent=money(todayCollections);
+ $('dashOpenServices').textContent=services.filter(s=>s.status==='Bekliyor'||s.status==='İşlemde').length.toLocaleString('tr-TR');
+ const receivables=services.filter(s=>s.status!=='İptal').reduce((sum,s)=>sum+Math.max(0,totalFor(s.id)-paidFor(s.id)),0);
+ $('dashReceivables').textContent=money(receivables);
+}
 function updateFinanceSummary(){
  const total=services.reduce((sum,s)=>sum+totalFor(s.id),0);
  const paid=payments.reduce((sum,p)=>sum+Number(p.amount||0),0);
  const debt=services.reduce((sum,s)=>sum+Math.max(0,totalFor(s.id)-paidFor(s.id)),0);
  const profit=financeRows.reduce((sum,f)=>sum+Number(f.labor_amount||0)+Number(f.parts_amount||0)+Number(f.travel_amount||0)-Number(f.parts_cost||0)-Number(f.travel_cost||0),0);
  $('financeTotal').textContent=money(total);$('financeCollected').textContent=money(paid);$('financeDebt').textContent=money(debt);$('financeProfit').textContent=money(profit);
+ updateDashboard();
 }
 async function loadFinance(){
  const [{data:fr,error:fe},{data:pa,error:pe}]=await Promise.all([
