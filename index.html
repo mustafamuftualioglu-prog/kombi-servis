@@ -1,274 +1,159 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#0f766e">
-  <title>Kombi Servis Takip</title>
-  <style>
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #f1f5f9;
-      color: #1e293b;
-    }
-    header {
-      background: #0f766e;
-      color: white;
-      padding: 20px;
-    }
-    header h1 { margin: 0 0 6px; font-size: 24px; }
-    header p { margin: 0; }
-    main {
-      max-width: 900px;
-      margin: 25px auto;
-      padding: 0 16px;
-    }
-    .card {
-      background: white;
-      padding: 22px;
-      border-radius: 12px;
-      margin-bottom: 20px;
-      box-shadow: 0 2px 8px #0000000d;
-    }
-    input, button {
-      width: 100%;
-      padding: 12px;
-      margin: 7px 0;
-      border-radius: 7px;
-      font-size: 16px;
-    }
-    input { border: 1px solid #cbd5e1; }
-    button {
-      background: #0f766e;
-      color: white;
-      border: 0;
-      cursor: pointer;
-    }
-    button:disabled { opacity: .6; }
-    .hidden { display: none; }
-    .muted { color: #64748b; }
-    .customer {
-      border: 1px solid #e2e8f0;
-      border-radius: 8px;
-      padding: 12px;
-      margin-top: 10px;
-    }
-    #message { white-space: pre-wrap; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0f766e">
+<title>Kombi Servis Takip</title>
+<style>
+:root{font-family:Arial,sans-serif;color:#172033;background:#f1f5f9}*{box-sizing:border-box}body{margin:0}header{background:#0f766e;color:white;padding:18px 20px;display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}header h1{margin:0 0 5px;font-size:23px}header p{margin:0;opacity:.9}main{max-width:1100px;margin:22px auto;padding:0 14px}.card{background:white;padding:18px;border-radius:12px;margin-bottom:16px;box-shadow:0 2px 8px #0000000c}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}label{display:block;font-size:14px;font-weight:600;margin:8px 0 4px}input,select,textarea,button{width:100%;padding:11px;border:1px solid #cbd5e1;border-radius:7px;font:inherit;margin:3px 0}textarea{min-height:78px;resize:vertical}button{background:#0f766e;color:#fff;border:0;font-weight:600;cursor:pointer}button.secondary{background:#e2e8f0;color:#172033}button.danger{background:#b91c1c}.hidden{display:none!important}.muted{color:#64748b}.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.row button{width:auto;min-width:120px}.notice{padding:11px;border-radius:8px;background:#ecfeff;color:#155e75;white-space:pre-wrap}.error{background:#fef2f2;color:#991b1b}.service{border:1px solid #e2e8f0;border-radius:10px;padding:14px;margin:10px 0}.service h3{margin:0 0 8px}.badge{display:inline-block;padding:4px 8px;border-radius:99px;background:#e2e8f0;font-size:12px}.service p{margin:6px 0}.service select{max-width:240px}.section-title{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}.section-title h2{margin:0}.small{font-size:13px}@media(max-width:560px){header h1{font-size:20px}.card{padding:14px}}
+</style>
 </head>
 <body>
-  <header>
-    <h1>🔧 Kombi Servis Takip</h1>
-    <p>Müşteri ve teknik servis yönetimi</p>
-  </header>
-
-  <main>
-    <section id="login" class="card">
-      <h2>Giriş Yap</h2>
-      <p class="muted">Servis sistemine kayıtlı e-posta adresinle giriş yap.</p>
-      <form id="loginForm">
-        <input id="email" type="email" placeholder="E-posta adresi" required>
-        <input id="password" type="password" placeholder="Şifre" required>
-        <button id="loginButton" type="submit">Giriş Yap</button>
-      </form>
-    </section>
-
-    <section id="app" class="hidden">
-      <div class="card">
-        <h2>Hoş geldin</h2>
-        <p id="userInfo"></p>
-        <p id="roleInfo" class="muted"></p>
-        <button id="logoutButton">Güvenli Çıkış</button>
-      </div>
-
-      <div class="card">
-        <h2>Müşteri Ekle</h2>
-        <form id="customerForm">
-          <input id="customerName" placeholder="Müşteri adı soyadı" required>
-          <input id="customerPhone" placeholder="Telefon">
-          <input id="customerAddress" placeholder="Adres">
-          <input id="customerNotes" placeholder="Notlar">
-          <button type="submit">Müşteriyi Kaydet</button>
-        </form>
-      </div>
-
-      <div class="card">
-        <h2>Müşteri Listesi</h2>
-        <button id="refreshButton">Listeyi Yenile</button>
-        <div id="customers"></div>
-      </div>
-
-      <div class="card">
-        <h2>Servis ve Finans</h2>
-        <p class="muted">
-          Bu bölümler, mevcut veritabanı sütunları ve yetkiler
-          doğrulandıktan sonra etkinleştirilecek.
-        </p>
-      </div>
-    </section>
-
-    <section class="card">
-      <p id="message" role="status" aria-live="polite"></p>
-    </section>
-  </main>
-
-  <script type="module">
-    import { createClient } from
-      'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-
-    const SUPABASE_URL = 'https://iqpwltycxnpuechpvyqb.supabase.co';
-    const SUPABASE_KEY = 'sb_publishable_1t2uuoDh5xCKkeBCMAfFCw_Z-CgewVQ';
-
-    const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-    const $ = id => document.getElementById(id);
-
-    function showMessage(text) {
-      $('message').textContent = text;
-    }
-
-    function escapeHTML(value) {
-      return String(value ?? '').replace(/[&<>"']/g, char => ({
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;',
-        "'": '&#39;'
-      })[char]);
-    }
-
-    async function updateScreen() {
-      const { data: { session } } = await supabase.auth.getSession();
-
-      $('login').classList.toggle('hidden', !!session);
-      $('app').classList.toggle('hidden', !session);
-
-      if (!session) return;
-
-      $('userInfo').textContent = session.user.email;
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('full_name, role')
-        .eq('id', session.user.id)
-        .maybeSingle();
-
-      if (error) {
-        showMessage('Kullanıcı bilgisi okunamadı: ' + error.message);
-        return;
-      }
-
-      $('roleInfo').textContent =
-        profile ? `Rol: ${profile.role}` : 'Kullanıcı profili bulunamadı.';
-
-      await loadCustomers();
-    }
-
-    $('loginForm').addEventListener('submit', async event => {
-      event.preventDefault();
-      $('loginButton').disabled = true;
-      showMessage('Giriş yapılıyor...');
-
-      try {
-        const { error } = await supabase.auth.signInWithPassword({
-          email: $('email').value.trim(),
-          password: $('password').value
-        });
-
-        if (error) throw error;
-
-        showMessage('Giriş başarılı.');
-        await updateScreen();
-      } catch (error) {
-        showMessage('Giriş yapılamadı: ' + error.message);
-      } finally {
-        $('loginButton').disabled = false;
-      }
-    });
-
-    $('logoutButton').addEventListener('click', async () => {
-      const { error } = await supabase.auth.signOut();
-      if (error) showMessage(error.message);
-      else {
-        showMessage('Çıkış yapıldı.');
-        await updateScreen();
-      }
-    });
-
-    async function loadCustomers() {
-      const container = $('customers');
-      container.textContent = 'Müşteriler yükleniyor...';
-
-      const { data, error } = await supabase
-        .from('customers')
-        .select('id, name, phone, address, notes')
-        .order('name');
-
-      if (error) {
-        container.textContent = 'Müşteriler okunamadı: ' + error.message;
-        return;
-      }
-
-      container.innerHTML = '';
-
-      if (!data || data.length === 0) {
-        container.textContent = 'Henüz müşteri kaydı yok.';
-        return;
-      }
-
-      for (const customer of data) {
-        const item = document.createElement('div');
-        item.className = 'customer';
-        item.innerHTML = `
-          <strong>${escapeHTML(customer.name)}</strong>
-          <div>${escapeHTML(customer.phone)}</div>
-          <div>${escapeHTML(customer.address)}</div>
-          <div class="muted">${escapeHTML(customer.notes)}</div>
-        `;
-        container.appendChild(item);
-      }
-    }
-
-    $('customerForm').addEventListener('submit', async event => {
-      event.preventDefault();
-      showMessage('Müşteri kaydediliyor...');
-
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (!user) {
-        showMessage('Önce giriş yapmalısın.');
-        return;
-      }
-
-      const customer = {
-        name: $('customerName').value.trim(),
-        phone: $('customerPhone').value.trim(),
-        address: $('customerAddress').value.trim(),
-        notes: $('customerNotes').value.trim(),
-        created_by: user.id
-      };
-
-      const { error } = await supabase
-        .from('customers')
-        .insert(customer);
-
-      if (error) {
-        showMessage('Müşteri kaydedilemedi: ' + error.message);
-        return;
-      }
-
-      $('customerForm').reset();
-      showMessage('Müşteri başarıyla kaydedildi.');
-      await loadCustomers();
-    });
-
-    $('refreshButton').addEventListener('click', loadCustomers);
-
-    supabase.auth.onAuthStateChange(() => {
-      setTimeout(() => updateScreen(), 0);
-    });
-
-    updateScreen();
-  </script>
+<header><div><h1>🔧 Kombi Servis Takip</h1><p>Müşteri ve teknik servis yönetimi</p></div><div id="headerUser" class="small"></div></header>
+<main>
+<section id="login" class="card">
+<h2>Giriş Yap</h2><p class="muted">Supabase uygulama hesabınla giriş yap.</p>
+<form id="loginForm"><label for="email">E-posta</label><input id="email" type="email" autocomplete="username" required><label for="password">Şifre</label><input id="password" type="password" autocomplete="current-password" required><button id="loginButton">Giriş Yap</button></form>
+</section>
+<div id="app" class="hidden">
+<div class="card"><div class="section-title"><div><strong id="userInfo"></strong><div id="roleInfo" class="muted small"></div></div><button id="logoutButton" class="secondary" style="width:auto">Güvenli Çıkış</button></div></div>
+<section class="card">
+<div class="section-title"><h2>Müşteri Ekle</h2><button type="button" id="toggleCustomer" class="secondary" style="width:auto">Formu Aç/Kapat</button></div>
+<form id="customerForm">
+<div class="grid"><div><label for="customerName">Müşteri adı soyadı *</label><input id="customerName" required></div><div><label for="customerPhone">Telefon</label><input id="customerPhone" type="tel"></div><div><label for="customerAddress">Adres</label><input id="customerAddress"></div><div><label for="customerNotes">Notlar</label><input id="customerNotes"></div></div>
+<button type="submit">Müşteriyi Kaydet</button></form>
+</section>
+<section class="card">
+<div class="section-title"><h2>Yeni Servis Kaydı</h2><span class="muted small">* Zorunlu alanlar</span></div>
+<form id="serviceForm">
+<div class="grid">
+<div><label for="serviceCustomer">Müşteri *</label><select id="serviceCustomer" required><option value="">Önce müşteri seç</option></select></div>
+<div><label for="serviceDate">Servis tarihi *</label><input id="serviceDate" type="date" required></div>
+<div><label for="boilerBrand">Kombi markası</label><input id="boilerBrand" placeholder="Örn. Demirdöküm"></div>
+<div><label for="boilerModel">Kombi modeli</label><input id="boilerModel" placeholder="Örn. Nitromix"></div>
+<div><label for="errorCode">Arıza kodu</label><input id="errorCode" placeholder="Örn. F28"></div>
+<div><label for="serviceStatus">Servis durumu</label><select id="serviceStatus"><option value="pending">Bekliyor</option><option value="in_progress">İşlemde</option><option value="completed">Tamamlandı</option><option value="cancelled">İptal</option></select></div>
+<div class="admin-only"><label for="technician">Atanacak teknisyen</label><select id="technician"><option value="">Teknisyen seç</option></select></div>
+</div>
+<label for="problem">Arıza açıklaması</label><textarea id="problem" placeholder="Müşterinin bildirdiği arıza..."></textarea>
+<label for="workDone">Yapılan işlem</label><textarea id="workDone" placeholder="Kontroller ve yapılan işlemler..."></textarea>
+<label for="partsNote">Kullanılan parçalar / not</label><textarea id="partsNote" placeholder="Parça adı, miktar veya servis notu..."></textarea>
+<button id="saveServiceButton" type="submit">Servis Kaydını Oluştur</button>
+</form>
+</section>
+<section class="card">
+<div class="section-title"><h2>Servis Kayıtları</h2><button type="button" id="refreshButton" class="secondary" style="width:auto">Listeyi Yenile</button></div>
+<div class="grid"><div><label for="filterStatus">Duruma göre filtrele</label><select id="filterStatus"><option value="">Tüm durumlar</option><option value="pending">Bekliyor</option><option value="in_progress">İşlemde</option><option value="completed">Tamamlandı</option><option value="cancelled">İptal</option></select></div><div><label for="searchService">Ara (müşteri, servis no, kombi)</label><input id="searchService" placeholder="Arama..."></div></div>
+<div id="serviceList" class="muted">Servis kayıtları yükleniyor...</div>
+</section>
+<section class="card"><h2>Müşteriler</h2><div id="customers" class="muted">Müşteriler yükleniyor...</div></section>
+</div>
+<div id="message" class="notice" role="status" aria-live="polite"></div>
+</main>
+<script type="module">
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+const SUPABASE_URL='https://iqpwltycxnpuechpvyqb.supabase.co';
+const SUPABASE_KEY='sb_publishable_1t2uuoDh5xCKkeBCMAfFCw_Z-CgewVQ';
+const supabase=createClient(SUPABASE_URL,SUPABASE_KEY);
+const $=id=>document.getElementById(id);
+let currentUser=null,currentProfile=null,customers=[],technicians=[],services=[];
+const statusLabels={pending:'Bekliyor',in_progress:'İşlemde',completed:'Tamamlandı',cancelled:'İptal'};
+function message(text,isError=false){$('message').textContent=text;$('message').classList.toggle('error',isError)}
+function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function isAdmin(){return currentProfile?.role==='admin'}
+function dateToday(){return new Date().toLocaleDateString('en-CA')}
+function applyRoleUI(){$$('.admin-only').forEach(el=>el.classList.toggle('hidden',!isAdmin()));$('roleInfo').textContent=isAdmin()?'Yönetici':'Teknisyen';}
+function $$(selector){return [...document.querySelectorAll(selector)]}
+async function init(){
+ const {data:{session},error}=await supabase.auth.getSession();
+ if(error)message(error.message,true);
+ if(session)await showApp(session.user);else showLogin();
+}
+function showLogin(){$('login').classList.remove('hidden');$('app').classList.add('hidden');$('headerUser').textContent='';}
+async function showApp(user){
+ currentUser=user;
+ const {data:profile,error}=await supabase.from('profiles').select('id,full_name,role').eq('id',user.id).maybeSingle();
+ if(error){message('Profil okunamadı: '+error.message,true);return}
+ if(!profile){message('Bu kullanıcı için profiles kaydı yok. Yöneticiye başvurun.',true);return}
+ currentProfile=profile;
+ $('login').classList.add('hidden');$('app').classList.remove('hidden');
+ $('userInfo').textContent=profile.full_name||user.email;$('headerUser').textContent=user.email;
+ applyRoleUI();$('serviceDate').value=dateToday();
+ await loadAll();
+}
+async function loadAll(){await loadCustomers();await loadTechnicians();await loadServices()}
+async function loadCustomers(){
+ const {data,error}=await supabase.from('customers').select('id,name,phone,address,notes').order('name');
+ if(error){$('customers').textContent='Müşteriler okunamadı: '+error.message;$('serviceCustomer').innerHTML='<option value="">Müşteriler yüklenemedi</option>';return}
+ customers=data||[];
+ $('serviceCustomer').innerHTML='<option value="">Müşteri seçin</option>'+customers.map(c=>'<option value="'+esc(c.id)+'">'+esc(c.name)+(c.phone?' — '+esc(c.phone):'')+'</option>').join('');
+ $('customers').innerHTML=customers.length?customers.map(c=>'<div class="service"><strong>'+esc(c.name)+'</strong><p>'+esc(c.phone)+'</p><p>'+esc(c.address)+'</p><p class="muted">'+esc(c.notes)+'</p></div>').join(''):'Henüz müşteri kaydı yok.';
+}
+async function loadTechnicians(){
+ const {data,error}=await supabase.from('profiles').select('id,full_name,role').eq('role','technician').order('full_name');
+ if(error){technicians=[];$('technician').innerHTML='<option value="">Teknisyen listesi okunamadı</option>';message('Teknisyen listesi okunamadı: '+error.message,true);return}
+ technicians=data||[];
+ $('technician').innerHTML='<option value="">Teknisyen seçin</option>'+technicians.map(t=>'<option value="'+esc(t.id)+'">'+esc(t.full_name||t.id)+'</option>').join('');
+ if(!isAdmin())$('technician').value=currentUser.id;
+}
+async function loadServices(){
+ $('serviceList').textContent='Servis kayıtları yükleniyor...';
+ let q=supabase.from('service_orders').select('id,service_no,customer_id,technician_id,service_date,status,boiler_brand,boiler_model,error_code,problem,work_done,parts_note,created_by,created_at').order('service_date',{ascending:false});
+ const {data,error}=await q;
+ if(error){$('serviceList').textContent='Servis kayıtları okunamadı: '+error.message;return}
+ services=data||[];renderServices();
+}
+function renderServices(){
+ const filter=$('filterStatus').value,term=$('searchService').value.trim().toLocaleLowerCase('tr-TR');
+ const list=services.filter(s=>{
+ const c=customers.find(x=>x.id===s.customer_id);const hay=[s.service_no,c?.name,s.boiler_brand,s.boiler_model,s.error_code,s.problem].join(' ').toLocaleLowerCase('tr-TR');
+ return (!filter||s.status===filter)&&(!term||hay.includes(term));
+ });
+ if(!list.length){$('serviceList').textContent='Bu filtrede servis kaydı bulunamadı.';return}
+ $('serviceList').innerHTML=list.map(s=>{
+ const c=customers.find(x=>x.id===s.customer_id),t=technicians.find(x=>x.id===s.technician_id);
+ const editStatus='<label>Durumu güncelle</label><select data-status="'+esc(s.id)+'">'+Object.entries(statusLabels).map(([v,l])=>'<option value="'+v+'" '+(s.status===v?'selected':'')+'>'+l+'</option>').join('')+'</select><button class="secondary" data-save-status="'+esc(s.id)+'">Durumu Kaydet</button>';
+ return '<article class="service"><div class="section-title"><h3>Servis #'+esc(s.service_no??'—')+' · '+esc(c?.name||'Müşteri bulunamadı')+'</h3><span class="badge">'+esc(statusLabels[s.status]||s.status||'Durum yok')+'</span></div><p><strong>Tarih:</strong> '+esc(s.service_date||'—')+' &nbsp; <strong>Teknisyen:</strong> '+esc(t?.full_name||(s.technician_id?'Atanmış kullanıcı':'Atanmadı'))+'</p><p><strong>Kombi:</strong> '+esc([s.boiler_brand,s.boiler_model].filter(Boolean).join(' ')||'Belirtilmedi')+' &nbsp; <strong>Arıza kodu:</strong> '+esc(s.error_code||'—')+'</p><p><strong>Arıza:</strong> '+esc(s.problem||'—')+'</p><p><strong>Yapılan işlem:</strong> '+esc(s.work_done||'—')+'</p><p><strong>Parça/not:</strong> '+esc(s.parts_note||'—')+'</p><div class="grid"><div>'+editStatus+'</div>'+(isAdmin()?'<div><label>Teknisyen ata</label><select data-tech="'+esc(s.id)+'"><option value="">Atanmadı</option>'+technicians.map(t=>'<option value="'+esc(t.id)+'" '+(t.id===s.technician_id?'selected':'')+'>'+esc(t.full_name||t.id)+'</option>').join('')+'</select><button class="secondary" data-save-tech="'+esc(s.id)+'">Atamayı Kaydet</button></div>':'')+'</div></article>';
+ }).join('');
+ $$('[data-save-status]').forEach(b=>b.addEventListener('click',()=>saveStatus(b.dataset.saveStatus)));
+ $$('[data-save-tech]').forEach(b=>b.addEventListener('click',()=>saveTechnician(b.dataset.saveTech)));
+}
+async function saveCustomer(e){
+ e.preventDefault();const payload={name:$('customerName').value.trim(),phone:$('customerPhone').value.trim()||null,address:$('customerAddress').value.trim()||null,notes:$('customerNotes').value.trim()||null,created_by:currentUser.id};
+ const {error}=await supabase.from('customers').insert(payload);
+ if(error){message('Müşteri kaydedilemedi: '+error.message,true);return}
+ $('customerForm').reset();message('Müşteri kaydedildi.');await loadCustomers();
+}
+async function saveService(e){
+ e.preventDefault();$('saveServiceButton').disabled=true;
+ const technicianId=isAdmin()?($('technician').value||null):currentUser.id;
+ const payload={customer_id:$('serviceCustomer').value,technician_id:technicianId,service_date:$('serviceDate').value,status:$('serviceStatus').value,boiler_brand:$('boilerBrand').value.trim()||null,boiler_model:$('boilerModel').value.trim()||null,error_code:$('errorCode').value.trim()||null,problem:$('problem').value.trim()||null,work_done:$('workDone').value.trim()||null,parts_note:$('partsNote').value.trim()||null,created_by:currentUser.id};
+ const {error}=await supabase.from('service_orders').insert(payload);
+ $('saveServiceButton').disabled=false;
+ if(error){message('Servis kaydedilemedi: '+error.message,true);return}
+ $('serviceForm').reset();$('serviceDate').value=dateToday();$('serviceStatus').value='pending';message('Servis kaydı oluşturuldu.');await loadServices();
+}
+async function saveStatus(id){
+ const el=$('[data-status="'+CSS.escape(id)+'"]');
+ const {error}=await supabase.from('service_orders').update({status:el.value,updated_at:new Date().toISOString()}).eq('id',id);
+ if(error){message('Durum güncellenemedi: '+error.message,true);return}
+ message('Servis durumu güncellendi.');await loadServices();
+}
+async function saveTechnician(id){
+ if(!isAdmin()){message('Teknisyen atama yetkiniz yok.',true);return}
+ const el=$('[data-tech="'+CSS.escape(id)+'"]');
+ const {error}=await supabase.from('service_orders').update({technician_id:el.value||null,updated_at:new Date().toISOString()}).eq('id',id);
+ if(error){message('Teknisyen atanamadı: '+error.message,true);return}
+ message('Teknisyen ataması güncellendi.');await loadServices();
+}
+$('loginForm').addEventListener('submit',async e=>{e.preventDefault();$('loginButton').disabled=true;message('Giriş yapılıyor...');const {data,error}=await supabase.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});$('loginButton').disabled=false;if(error){message('Giriş yapılamadı: '+error.message,true);return}await showApp(data.user);});
+$('logoutButton').addEventListener('click',async()=>{const {error}=await supabase.auth.signOut();if(error){message(error.message,true);return}currentUser=null;currentProfile=null;showLogin();message('Çıkış yapıldı.')});
+$('customerForm').addEventListener('submit',saveCustomer);$('serviceForm').addEventListener('submit',saveService);
+$('refreshButton').addEventListener('click',loadAll);$('filterStatus').addEventListener('change',renderServices);$('searchService').addEventListener('input',renderServices);
+$('toggleCustomer').addEventListener('click',()=>$('customerForm').classList.toggle('hidden'));
+supabase.auth.onAuthStateChange((event,session)=>{if(event==='SIGNED_OUT'){showLogin()}else if(event==='SIGNED_IN'&&session){setTimeout(()=>showApp(session.user),0)}});
+init();
+</script>
 </body>
 </html>
