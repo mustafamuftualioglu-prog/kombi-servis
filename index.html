@@ -4,6 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#0f766e">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./icon.svg" type="image/svg+xml">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Kombi Servis">
 <title>Kombi Servis Takip</title>
 <style>
 :root{font-family:Arial,sans-serif;color:#172033;background:#f1f5f9}*{box-sizing:border-box}body{margin:0}header{background:#0f766e;color:white;padding:18px 20px;display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}header h1{margin:0 0 5px;font-size:23px}header p{margin:0;opacity:.9}main{max-width:1100px;margin:22px auto;padding:0 14px}.card{background:white;padding:18px;border-radius:12px;margin-bottom:16px;box-shadow:0 2px 8px #0000000c}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}label{display:block;font-size:14px;font-weight:600;margin:8px 0 4px}input,select,textarea,button{width:100%;padding:11px;border:1px solid #cbd5e1;border-radius:7px;font:inherit;margin:3px 0}textarea{min-height:78px;resize:vertical}button{background:#0f766e;color:#fff;border:0;font-weight:600;cursor:pointer}button.secondary{background:#e2e8f0;color:#172033}button.danger{background:#b91c1c}.hidden{display:none!important}.muted{color:#64748b}.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.row button{width:auto;min-width:120px}.notice{padding:11px;border-radius:8px;background:#ecfeff;color:#155e75;white-space:pre-wrap}.error{background:#fef2f2;color:#991b1b}.service{border:1px solid #e2e8f0;border-radius:10px;padding:14px;margin:10px 0}.service h3{margin:0 0 8px}.badge{display:inline-block;padding:4px 8px;border-radius:99px;background:#e2e8f0;font-size:12px}.service p{margin:6px 0}.service select{max-width:240px}.section-title{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}.section-title h2{margin:0}.small{font-size:13px}@media(max-width:560px){header h1{font-size:20px}.card{padding:14px}}
@@ -397,6 +401,7 @@ $('saveFinanceButton').addEventListener('click',saveFinance);
 $('addPaymentButton').addEventListener('click',addPayment);
 $('paymentDate').value=new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,16);
 supabase.auth.onAuthStateChange((event,session)=>{if(event==='SIGNED_OUT'){showLogin()}else if(event==='SIGNED_IN'&&session){setTimeout(()=>showApp(session.user),0)}});
+if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./service-worker.js').catch(err=>console.warn('Service worker registration failed',err)));}
 init();
 </script>
 </body>
