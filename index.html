@@ -164,9 +164,7 @@ function renderServices(){
  const editStatus='<label>Durumu güncelle</label><select data-status="'+esc(s.id)+'">'+Object.entries(statusLabels).map(([v,l])=>'<option value="'+v+'" '+(s.status===v?'selected':'')+'>'+l+'</option>').join('')+'</select><button class="secondary" data-save-status="'+esc(s.id)+'">Durumu Kaydet</button>';
  return '<article class="service"><div class="section-title"><h3>Servis #'+esc(s.service_no??'—')+' · '+esc(c?.name||'Müşteri bulunamadı')+'</h3><span class="badge">'+esc(statusLabels[s.status]||s.status||'Durum yok')+'</span></div><p><strong>Tarih:</strong> '+esc(s.service_date||'—')+' &nbsp; <strong>Teknisyen:</strong> '+esc(t?.full_name||(s.technician_id?'Atanmış kullanıcı':'Atanmadı'))+'</p><p><strong>Kombi:</strong> '+esc([s.boiler_brand,s.boiler_model].filter(Boolean).join(' ')||'Belirtilmedi')+' &nbsp; <strong>Arıza kodu:</strong> '+esc(s.error_code||'—')+'</p><p><strong>Arıza:</strong> '+esc(s.problem||'—')+'</p><p><strong>Yapılan işlem:</strong> '+esc(s.work_done||'—')+'</p><p><strong>Parça/not:</strong> '+esc(s.parts_note||'—')+'</p><div class="row"><button type="button" class="secondary" data-pdf-service="'+esc(s.id)+'">Servis Formu / PDF</button></div><div class="grid"><div>'+editStatus+'</div>'+(isAdmin()?'<div><label>Teknisyen ata</label><select data-tech="'+esc(s.id)+'"><option value="">Atanmadı</option>'+technicians.map(t=>'<option value="'+esc(t.id)+'" '+(t.id===s.technician_id?'selected':'')+'>'+esc(t.full_name||t.id)+'</option>').join('')+'</select><button class="secondary" data-save-tech="'+esc(s.id)+'">Atamayı Kaydet</button></div>':'')+'</div></article>';
  }).join('');
- $('[data-save-status]').forEach(b=>b.addEventListener('click',()=>saveStatus(b.dataset.saveStatus)));
- $('[data-save-tech]').forEach(b=>b.addEventListener('click',()=>saveTechnician(b.dataset.saveTech)));
- $('[data-pdf-service]').forEach(b=>b.addEventListener('click',()=>printServiceForm(b.dataset.pdfService)));
+
 }
 async function saveCustomer(e){
  e.preventDefault();const payload={name:$('customerName').value.trim(),phone:$('customerPhone').value.trim()||null,address:$('customerAddress').value.trim()||null,notes:$('customerNotes').value.trim()||null,created_by:currentUser.id};
@@ -326,6 +324,16 @@ async function saveTechnician(id){
  if(!savedService||savedService.technician_id!==selectedId){message('Veritabanı güncelleme yanıtı olumlu, ancak yenilenen servis listesinde atama görünmüyor. Listeyi Yenile ile tekrar kontrol edin.',true);return}
  message(selectedTech?'Teknisyen ataması kaydedildi: '+selectedTech.full_name+'.':'Teknisyen ataması kaldırıldı.');
 }
+document.addEventListener('click',event=>{
+ const target=event.target instanceof Element?event.target:null;
+ if(!target)return;
+ const statusButton=target.closest('[data-save-status]');
+ if(statusButton){event.preventDefault();saveStatus(statusButton.dataset.saveStatus);return}
+ const techButton=target.closest('[data-save-tech]');
+ if(techButton){event.preventDefault();saveTechnician(techButton.dataset.saveTech);return}
+ const pdfButton=target.closest('[data-pdf-service]');
+ if(pdfButton){event.preventDefault();printServiceForm(pdfButton.dataset.pdfService)}
+});
 $('loginForm').addEventListener('submit',async e=>{e.preventDefault();$('loginButton').disabled=true;message('Giriş yapılıyor...');const {data,error}=await supabase.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});$('loginButton').disabled=false;if(error){message('Giriş yapılamadı: '+error.message,true);return}await showApp(data.user);});
 $('logoutButton').addEventListener('click',async()=>{const {error}=await supabase.auth.signOut();if(error){message(error.message,true);return}currentUser=null;currentProfile=null;showLogin();message('Çıkış yapıldı.')});
 $('customerForm').addEventListener('submit',saveCustomer);$('serviceForm').addEventListener('submit',saveService);
